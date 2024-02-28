@@ -1,0 +1,1 @@
+The STL file provides an adapter that adapts the camera of a Picar-X from the front axle to the rear axle. This allows for an improved, wider camera angle.

@@ -1,0 +1,1 @@
+In our presentation, you can gain a closer insight into the implementation, the objectives, the challenges of our project and develop a better understanding of our code.
