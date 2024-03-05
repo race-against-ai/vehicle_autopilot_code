@@ -214,7 +214,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     #apply main_detect function to get different video streams
                     self.getStream(stream_path)
 
-                    driving_instance.frward_drive(0.2)
+                    #driving_instance.frward_drive(0.2)
 
             except Exception as e:
                 print_exc()
@@ -256,7 +256,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
                     stream_type = self.path.split('/')[-1].split('.')[0]
                     #frame = cvtColor(frame, COLOR_RGB2BGR)
 
-                    driving_instance.battery_percent()
+                    #driving_instance.battery_percent()
 
                     #send the corresponding stream based on the requested type
                     if stream_type == 'normal':
@@ -304,10 +304,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
         canny, field_of_interest, detected_lanes, result = main_lanes(frame, centroids, backup_centroids)
 
         #show battery percentage on display
-        driving_instance.battery_percent()
-
-        total_time = (time.time() - start_time) * 1000  #Total time
-        print("Total Main Loop Time:", total_time, "ms")
+        #driving_instance.battery_percent()
     
 
         #send the corresponding stream based on the requested type
@@ -326,6 +323,9 @@ class StreamingHandler(BaseHTTPRequestHandler):
         #handle unknown stream type
             self.send_error(404)
             self.end_headers()
+
+        total_time = (time.time() - start_time) * 1000  #Total time
+        print("Total Main Loop Time:", total_time, "ms")
         
 
     def getTrackline(self, frame):

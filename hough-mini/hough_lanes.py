@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import math
 import time
+import time
+
 
 #create an instance of Functions_drivin
 from driving import Functions_Driving
@@ -38,11 +40,11 @@ def make_coordinates(image, line_parameters, position):
     except TypeError as e:
         if position == "left":
             coords_left = backup_left_line
-            print("backup")
+            #print("backup")
             return backup_left_line
         else:
             coords_right = backup_right_line
-            print("backup")
+            #print("backup")
             return backup_right_line
 
 def average_slope_intercept(image, lines):
@@ -74,8 +76,8 @@ def average_slope_intercept(image, lines):
     backup_left_line = left_line
     backup_right_line = right_line
 
-    print(left_line)
-    print(right_line)
+    #print(left_line)
+    #print(right_line)
 
     return np.array([left_line, right_line])
 
@@ -166,7 +168,6 @@ def VideoCapture(frame, centroids, backup_centroids):
     
     canny_image = canny(frame)
     canny_time = (time.time() - start_time) * 1000
-    print("Canny Edge Detection Time:", canny_time, "ms")
     
     # Define the vertices of the triangle
     pts = np.array([[100, 800], [900, 800], [500, 400]], dtype=np.int32)
@@ -181,12 +182,10 @@ def VideoCapture(frame, centroids, backup_centroids):
 
     cropped_image = region_of_interest(canny_image)
     cropped_time = (time.time() - start_time) * 1000
-    print("Region of Interest Time:", cropped_time - canny_time, "ms")
     
     # detects lines with houghmesh
     lines = cv2.HoughLinesP(cropped_image, 2, np.pi/180, 100, np.array([]), minLineLength=40, maxLineGap=10)
     hough_time = (time.time() - start_time) * 1000
-    print("Hough Transformation Time:", hough_time - cropped_time, "ms")
     
     if lines is not None:
         averaged_lines = average_slope_intercept(frame, lines)
@@ -196,22 +195,20 @@ def VideoCapture(frame, centroids, backup_centroids):
         line_image = np.copy(frame)
     
     line_time = (time.time() - start_time) * 1000 
-    print("Line Display Time:", line_time - hough_time, "ms")
-        
-    # blend lanes over original image
-    combo_image = cv2.addWeighted(frame, 0.8, line_image, 1, 1)
-    blend_time = (time.time() - start_time) * 1000  #combo time
-    print("Image Blending Time:", blend_time - line_time, "ms")
-    
     total_time = (time.time() - start_time) * 1000  #Total time
-    print("Total Function Time:", total_time, "ms")
-    
-    return canny_image, cropped_image, line_image, combo_image
+
+
+    data = [time.strftime("%H:%M:%S"),
+            canny_time,
+            cropped_time,
+            hough_time,
+            line_time,
+            total_time]
+    return data
 
 
 def main_lanes(frame, centroids, backup_centroids):
 
-    canny, field_of_interest, detected_lanes, result = VideoCapture(frame, centroids, backup_centroids)
+    data = VideoCapture(frame, centroids, backup_centroids)
 
-    #return generated images
-    return canny, field_of_interest, detected_lanes, result
+    return data

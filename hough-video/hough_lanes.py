@@ -189,17 +189,10 @@ def VideoCapture(frame, centroids, backup_centroids):
     hough_time = (time.time() - start_time) * 1000
     
     if lines is not None:
-        try:
-            averaged_lines = average_slope_intercept(frame, lines)
-            line_image, variance, steering_direction = display_lines(frame, averaged_lines, centroids, backup_centroids)
-        except:
-            line_image = np.copy(frame)
-            variance, steering_direction = 0,0
-            print("Error no line found")
-
+        averaged_lines = average_slope_intercept(frame, lines)
+        line_image, variance, steering_direction = display_lines(frame, averaged_lines, centroids, backup_centroids)
     else:
         # If no lines detected, use the original frame.
-        variance, steering_direction = 0,0
         line_image = np.copy(frame)
     
     line_time = (time.time() - start_time) * 1000 

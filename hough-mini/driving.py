@@ -6,19 +6,22 @@ import busio
 
 battery_percent_backup = 100
 status = 2 #status = 1 charging, status = 2 no charging
+sensitivity = 0.8
 
 
 class Functions_Driving:
+    global sensitivity
+
     def __init__(self):
         self.piracer = PiRacerPro()
 
     #steering left
     def left_steering(self, percent):
-        self.piracer.set_steering_percent(-percent)
+        self.piracer.set_steering_percent(-percent*sensitivity)
     
     #steering right
     def right_steering(self, percent):
-        self.piracer.set_steering_percent(percent)
+        self.piracer.set_steering_percent(percent*sensitivity)
     
     #steering Forward
     def frward_drive(self, percent):

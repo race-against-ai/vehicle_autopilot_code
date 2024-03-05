@@ -29,6 +29,8 @@ from PIL import ImageFont, ImageDraw, Image
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import copy
 import time
+from prettytable import PrettyTable
+import os
 
 #importing required OpenCV modules
 from cv2 import COLOR_RGB2BGR, cvtColor
@@ -53,15 +55,20 @@ def main(firstRun = False):
         track, centroids, backup_centroids = getTrackline(frame)
 
     #apply main_detect function to get different video streams
-    canny, field_of_interest, detected_lanes, result = main_lanes(frame, centroids, backup_centroids)
+    data = main_lanes(frame, centroids, backup_centroids)
 
     total_time = (time.time() - start_time) * 1000  #Total time
-    print("Total Main Loop Time:", total_time, "ms")
+
+    fps = 1000/total_time
+    data.append(total_time)
+    data.append(fps)
 
     #show battery percentage on display
     #driving_instance.battery_percent()
 
     #driving_instance.frward_drive(0.2)
+
+    print_table(data)
 
         
 
@@ -85,6 +92,15 @@ def getTrackline(frame):
     track, centroids, backup_centroids  = trackline_import.run(test)
 
     return track, centroids, backup_centroids
+
+def print_table(data):
+    # Erstellen der Tabelle
+    table = PrettyTable()
+    table.field_names = ["Timestamp","Canny Image", "Region of Interest","Hough Lines", "Line Image", "Total Image Time", "Total Main Loop", "FPS"]
+    table.add_row(data)
+    
+    # Ausgabe der Tabelle
+    print(table)
 
 
 if __name__ == "__main__":

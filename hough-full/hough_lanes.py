@@ -147,6 +147,9 @@ def display_lines(image, lines, centroids, backup_centroids, distance = 70):
 def region_of_interest(image):
     #height of the stream
     height = image.shape[0]
+    width = image.shape[1]
+
+    print(f'{width}x{height}')
 
     #define region 
     polygons = np.array([
