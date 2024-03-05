@@ -12,9 +12,9 @@ class Trackline:
 
     def get_thresholded_img(self, im):
         #convert the input image to grayscale
-        imghsv = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        #imghsv = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         #threshold the image to obtain a binary mask
-        img_threshold = cv2.inRange(imghsv, 200, 255)  # Adjust the threshold values as needed
+        img_threshold = cv2.inRange(im, 200, 255)  # Adjust the threshold values as needed
         return img_threshold
 
     def get_positions(self, im):

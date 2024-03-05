@@ -74,10 +74,19 @@ class SteeringController:
             #if the left distance is smaller, steer right
             variance = distance_difference / max_difference
 
+            if variance > 1:
+                variance = 1
+
+            variance = -variance
+
             steering_direction = "right"
         else:
             #if the right distance is smaller, steer left
             variance = distance_difference / max_difference
+
+            if variance > 1:
+                variance = 1
+
 
             steering_direction = "left"
 

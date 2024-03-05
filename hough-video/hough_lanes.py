@@ -17,6 +17,13 @@ coords_left = [0, 0, 0, 0]
 coords_right = [1000,500,1000,500]
 
 def make_coordinates(image, line_parameters, position):
+    """
+    Generate coordinates for a line based on given image dimensions, line parameters, and position.
+    :param image: The image to draw the line on
+    :param line_parameters: Parameters of the line (slope and intercept)
+    :param position: Position of the line (either "left" or "right")
+    :return: Array of coordinates for the line
+    """
     global coords_left, coords_right
 
     #generate a single averaged line for the left and right lane by obtaining the average coordinates from both the left and right lines.
@@ -46,6 +53,13 @@ def make_coordinates(image, line_parameters, position):
             return backup_right_line
 
 def average_slope_intercept(image, lines):
+    """
+    Calculate the average slope and intercept for left and right lane lines.
+    Generate averaged lines based on the calculated parameters.
+    :param image: The image to draw the lines on
+    :param lines: Array of Hough lines
+    :return: Array of coordinates for averaged left and right lane lines
+    """
     global backup_left_line, backup_right_line
 
     left_fit = []
@@ -81,13 +95,52 @@ def average_slope_intercept(image, lines):
 
 
 def canny(image):
+    """
+    Apply Canny edge detection to the given image.
+    :param image: The input image
+    :return: Image after Canny edge detection
+    """
     #get canny image (remove blur and apply scale)
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     canny = cv2.Canny(blur, 50, 150)
     return canny
 
+
+def white(frame):
+    """
+    Detect white regions in the given frame.
+    :param frame: The input frame
+    :return: Image with white regions detected
+    """
+    # Convert to HSV color space
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # Define range of white color in HSV
+    lower_white = np.array([0, 0, 200])
+    upper_white = np.array([255, 100, 255])
+
+    # Threshold the HSV image to get only white colors
+    mask = cv2.inRange(hsv, lower_white, upper_white)
+
+    # Bitwise-AND mask and original image
+    white_pixels = cv2.bitwise_and(frame, frame, mask=mask)
+
+    gray = cv2.cvtColor(white_pixels, cv2.COLOR_HSV2RGB)
+
+    return gray
+
+
 def display_lines(image, lines, centroids, backup_centroids, distance = 70):
+    """
+    Display lines on the given image representing lanes and car direction.
+    :param image: The input image
+    :param lines: Detected lane lines
+    :param centroids: Centroids of detected objects
+    :param backup_centroids: Backup centroids of detected objects
+    :param distance: Distance from the midpoint for calculating the direction line
+    :return: Image with lanes and direction line displayed, variance, and steering direction
+    """
     line_image = np.zeros_like(image)
 
     if lines is not None:
@@ -145,28 +198,59 @@ def display_lines(image, lines, centroids, backup_centroids, distance = 70):
 
 
 def region_of_interest(image):
-    #height of the stream
+    """
+    Apply a region of interest mask to the given image.
+    :param image: The input image
+    :return: Image with region of interest masked
+    """
+    # Height and width of the image
     height = image.shape[0]
     width = image.shape[1]
 
-    #print(f'{width}x{height}')
-
-    #define region 
+    # Define the region of interest
     polygons = np.array([
         [(0, height-50), (1100, height-50), (500, 250)]
         ])
-    #apply region of interest (polygon is punched out)
-    mask = np.zeros_like(image)
+
+    # Create a mask with the region of interest filled with white
+    mask = np.zeros((height, width), dtype=np.uint8)
     cv2.fillPoly(mask, polygons, 255)
-    masked_image = cv2.bitwise_and( image, mask)
+
+    # Apply the mask to the image using bitwise AND operation
+    masked_image = cv2.bitwise_and(image, image, mask=mask)
+
     return masked_image
 
+def region_interest(image):
+    """
+    Define a region of interest by masking out a specific area in the given image.
+    :param image: The input image
+    :return: Image with the specified region of interest masked
+    """
+    square = (0, 0, 1024, 300) #oben
+
+    cv2.rectangle(image, (square[0], square[1]), (square[0] + square[2], square[1] + square[3]), color=(0, 0, 0), thickness=cv2.FILLED)
+
+    return image
 
 
 def VideoCapture(frame, centroids, backup_centroids):
+    """
+    Perform video capture processing including region of interest masking, white color detection, Canny edge detection,
+    triangle masking, Hough line detection, lane line averaging, display lines, blending lanes over the original frame,
+    and calculating processing times.
+    :param frame: The input frame
+    :param centroids: Centroids of detected objects
+    :param backup_centroids: Backup centroids of detected objects
+    :return: Tuple containing the processed image, processing data, variance, and steering direction
+    """
     start_time = time.time()
+
+    cropped_image = region_of_interest(frame)
+    cropped_time = (time.time() - start_time) * 1000
     
-    canny_image = canny(frame)
+    white_image = white(cropped_image)
+    canny_image = canny(white_image)
     canny_time = (time.time() - start_time) * 1000
     
     # Define the vertices of the triangle
@@ -180,19 +264,24 @@ def VideoCapture(frame, centroids, backup_centroids):
     # Draw the filled triangle on the black image
     cv2.fillPoly(canny_image, [pts, pts2], color=(0, 0, 0))
 
-    cropped_image = region_of_interest(canny_image)
-    cropped_time = (time.time() - start_time) * 1000
+    cv2.imshow("Canny",canny_image)
 
-    
     # detects lines with houghmesh
-    lines = cv2.HoughLinesP(cropped_image, 2, np.pi/180, 100, np.array([]), minLineLength=40, maxLineGap=10)
+    lines = cv2.HoughLinesP(canny_image, 2, np.pi/180, 100, np.array([]), minLineLength=40, maxLineGap=10)
     hough_time = (time.time() - start_time) * 1000
     
     if lines is not None:
-        averaged_lines = average_slope_intercept(frame, lines)
-        line_image, variance, steering_direction = display_lines(frame, averaged_lines, centroids, backup_centroids)
+        try:
+            averaged_lines = average_slope_intercept(frame, lines)
+            line_image, variance, steering_direction = display_lines(frame, averaged_lines, centroids, backup_centroids)
+        except:
+            line_image = np.copy(frame)
+            variance, steering_direction = 0,0
+            print("Error no line found")
+
     else:
         # If no lines detected, use the original frame.
+        variance, steering_direction = 0,0
         line_image = np.copy(frame)
     
     line_time = (time.time() - start_time) * 1000 
@@ -216,6 +305,13 @@ def VideoCapture(frame, centroids, backup_centroids):
 
 
 def main_lanes(frame, centroids, backup_centroids):
+    """
+    Main function for lane detection processing.
+    Calls the VideoCapture function to process the frame, collect processing data, variance, and steering direction.
+    :param frame: The input frame
+    :param centroids: Centroids of detected objects
+    :param backup_centroids: Backup centroids of detected objects
+    :return: Tuple containing the processed image, processing data, variance, and steering direction"""
 
     result, data, variance, steering_direction = VideoCapture(frame, centroids, backup_centroids)
 
