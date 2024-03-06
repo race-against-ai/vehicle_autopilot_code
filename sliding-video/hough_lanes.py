@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import math
 import time
 import matplotlib.pyplot as plt # Used for plotting and error checking
 
@@ -22,10 +21,10 @@ class LaneDetection:
         self.car_cords = np.array([[100, 800], [900, 800], [500, 400]], dtype=np.int32)
 
         self.roi_points = np.float32([
-            (380,380), # Top-left corner
-            (-20, 700), # Bottom-left corner            
-            (1044,700), # Bottom-right corner
-            (700,380) # Top-right corner
+            (380,280), # Top-left corner
+            (-20, 585), # Bottom-left corner            
+            (1044,585), # Bottom-right corner
+            (700,280) # Top-right corner
         ])
 
         # The desired corner locations  of the region of interest
@@ -71,8 +70,6 @@ class LaneDetection:
         self.XM_PER_PIX = 2.0 / 1024 # meters per pixel in x dimension
             
         # Radii of curvature and offset
-        self.left_curvem = None
-        self.right_curvem = None
         self.center_offset = None
 
         #offset of the car
@@ -308,6 +305,8 @@ class LaneDetection:
                 ax3.imshow(out_img)
                 ax3.plot(left_fitx, ploty, color='yellow')
                 ax3.plot(right_fitx, ploty, color='yellow')
+                print(left_fitx)
+                print(ploty)
                 ax1.set_title("Original Frame")  
                 ax2.set_title("Warped Frame with Sliding Windows")
                 ax3.set_title("Detected Lane Lines with Sliding Windows")
@@ -429,7 +428,7 @@ class LaneDetection:
         """
         # Generate an image to draw the lane lines on 
         warp_zero = np.zeros_like(self.warped_frame).astype(np.uint8)
-        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))       
+        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))   
 
         # Ensure that pts is not None
         if self.left_fitx is None or self.right_fitx is None:
@@ -442,6 +441,7 @@ class LaneDetection:
         pts_right = np.array([np.flipud(np.transpose(np.vstack([
                             self.right_fitx, self.ploty])))])
         pts = np.hstack((pts_left, pts_right))
+
 
         # Ensure that pts is not None
         if pts is None:
@@ -517,8 +517,24 @@ class LaneDetection:
     
         # (x coordinate of left peak, x coordinate of right peak)
         return leftx_base, rightx_base
+    
+    def is_straight(self, printToTerminal = False):
 
+        first_point = self.left_fitx[0]
+        second_point = self.left_fitx[-1]
+        if printToTerminal:
+            print(f'Abstand Linien {first_point - second_point}')
 
+        #for left curve
+        if (first_point - second_point) > 0 and (first_point - second_point) < 100:
+
+            return True
+        
+        else:
+
+            False
+
+        #if self.left_fit
 
 def main_lanes(frame):
     """
@@ -526,7 +542,7 @@ def main_lanes(frame):
     perspective transformation, histogram calculation, lane line detection using sliding windows, filling in the lane lines,
     overlaying lines on the original frame, and calculating the car's position offset.
     :param frame: The input frame for lane detection
-    :return: Tuple containing the car's center offset and data collected during the process
+    :return: Tuple containing the car's center offset and time data collected during the process
     """
     #lane detection class
     lane_detection = LaneDetection(frame)
@@ -537,20 +553,20 @@ def main_lanes(frame):
     #show only white pixels in image
     white_image = lane_detection.white(frame)
     white_time = (time.time() - start_time) * 1000
-        
+
     #blend out car
-    no_car = lane_detection.blend_out_car(white_image)
+    #no_car = lane_detection.blend_out_car(white_image)
     no_car_time = (time.time() - start_time) * 1000
 
     #show region of interest by displaying them
-    lane_detection.plot_region_of_interest(no_car, False)
+    lane_detection.plot_region_of_interest(white_image, False)
     roi_time = (time.time() - start_time) * 1000
 
     #transform perspective
-    cropped_image = lane_detection.perspective_transform(no_car, False)
+    cropped_image = lane_detection.perspective_transform(white_image, False)
     transform_time = (time.time() - start_time) * 1000
 
-    #cv2.imshow("White", cropped_image)
+    cv2.imshow("warped", cropped_image)
 
     #histogram
     histogram = lane_detection.calculate_histogram(cropped_image, plot=False)  
@@ -572,7 +588,6 @@ def main_lanes(frame):
 
     # Find lane line pixels using the sliding window method 
     left_fit, right_fit = lane_detection.get_lane_line_indices_sliding_windows(plot=False)
- 
     # Fill in the lane line
     lane_detection.get_lane_line_previous_window(left_fit, right_fit, plot=False)
 
@@ -590,9 +605,18 @@ def main_lanes(frame):
         print("Error: Invalid dimensions for frame_with_lane_lines")
 
     # Calculate center offset                                                                 
-    center_offset = lane_detection.calculate_car_position(print_to_terminal=True)
+    center_offset = lane_detection.calculate_car_position(print_to_terminal=False)
 
     car_position_time = (time.time() - start_time) * 1000
+
+    straight = lane_detection.is_straight()
+
+    if straight:
+        print("Gerade")
+    else:
+        print("Kurve")
+
+    
 
     data = [time.strftime("%H:%M:%S"),
         white_time,
@@ -604,4 +628,4 @@ def main_lanes(frame):
         overlay_time,
         car_position_time]
 
-    return center_offset, data
+    return center_offset, data, straight

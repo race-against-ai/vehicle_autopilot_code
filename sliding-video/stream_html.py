@@ -18,7 +18,6 @@ from traceback import print_exc
 from threading import Condition
 from PIL import ImageFont, ImageDraw, Image
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import copy
 import time
 from prettytable import PrettyTable
 import numpy as np
@@ -31,14 +30,14 @@ call_counter = 0
 def main():
 
     # Path to the video file
-    video_path = 'videos/no-off.avi'
+    video_path = '/home/marvin/Desktop/sliding-video/videos/no-off.avi'
 
     # Create a VideoCapture object
     cap = cv2.VideoCapture(video_path)
 
     # Check if the video opened successfully
     if not cap.isOpened():
-        print("Error: Could not open video.")
+        print("Error: Could not opeqn video.")
         exit()
 
     total_time_sum = 0
@@ -64,15 +63,15 @@ def main():
         start_time = time.time()
 
         #lane detection
-        center_offset, data = main_lanes(frame)
+        center_offset, data, straight = main_lanes(frame)
         
         #calculation for steering angle
-        angle = calculate_steering_angle(center_offset)
+        angle = calculate_steering_angle(center_offset, straight)
         #print(angle)
         steering_angle = angle * 90
 
         steering_wheel_img = draw_steering_wheel(steering_angle)
-        cv2.imshow('Steering Wheel', steering_wheel_img)        
+        #cv2.imshow('Steering Wheel', steering_wheel_img)        
 
         #calculations for process time
         total_time = (time.time() - start_time) * 1000
@@ -104,7 +103,7 @@ def main():
             break
         
 
-def calculate_steering_angle(offset):
+def calculate_steering_angle(offset, straight):
     """
     Calculate steering angle from offset to middle
     
@@ -112,16 +111,27 @@ def calculate_steering_angle(offset):
     :return: Steering angle in range [0, 1]
     """
     # Clamp offset to range [-50, 50]
-    offset = max(-50, min(offset, 50))
+    offset = max(-15, min(offset, 15))
     
     # Check if offset is smaller than 10 percent
     if abs(offset) < 2:
         return 0.0
     
     # Normalize offset to range [-1, 1]
-    normalized_offset = offset / 70
+    if straight:
+        normalized_offset = offset / 60
+        angle = normalized_offset
+    else:
+        normalized_offset = offset / 30
+        angle = normalized_offset
+
+    #max
+    if angle > 1:
+        angle = 1
+    elif angle < -1:
+        angle = 1
     
-    return normalized_offset
+    return angle
 
 def create_table_image(data):
     """
