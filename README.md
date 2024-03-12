@@ -5,17 +5,17 @@
 - Adapter -> Modification of the old vehicle using the 3D printer
   
 - camera_rear: - hough          -> hough algorithm (#outdated) <br>
-               - machine-learn  -> machine learning algorithm (#outdated)
-               - record-video   -> file to record a video (#finished)
-               - samples        -> samples of the car
+               - machine-learn  -> machine learning algorithm (#outdated) <br>
+               - record-video   -> file to record a video (#finished) <br>
+               - samples        -> samples of the car <br>
 
-- camera_front: - sliding-windows -> sliding windows (#outdated)
-                - inside-out      -> efficent technique (#in development)
+- camera_front: - sliding-windows -> sliding windows (#outdated) <br>
+                - inside-out      -> efficent technique (#in development) <br>
 
-- camera_record: - video recording -> file to record a video (#finished)
+- camera_record: - video recording -> file to record a video (#finished) <br>
 
-- presentation:  - Explanation of the Hough algorithm: "Explanation of the Hough algorithm"
-                 - Explanation of sliding windows: "Explanation of sliding windows"
+- presentation:  - Explanation of the Hough algorithm: "Explanation of the Hough algorithm" <br>
+                 - Explanation of sliding windows: "Explanation of sliding windows" <br>
 
 ### Overview
 The Pi-Car-Turbo project, initiated by FIAN23, aims to develop a self-driving car equipped with the capability to autonomously navigate a racetrack. Based on the Race against AI project, the vehicle symbolizes advanced automation, incorporating essential elements like the automobile, a Raspberry Pi, a camera, and an electric engine.
