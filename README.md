@@ -4,7 +4,7 @@
 
 - Adapter -> Modification of the old vehicle using the 3D printer
   
-- camera_rear: - hough          -> hough algorithm (#outdated)
+- camera_rear: - hough          -> hough algorithm (#outdated) <br>
                - machine-learn  -> machine learning algorithm (#outdated)
                - record-video   -> file to record a video (#finished)
                - samples        -> samples of the car
