@@ -385,8 +385,7 @@ def main_lanes(frame, lane_detection, debug):
     #function to detect curve
     straight = lane_detection.is_curve(debug)
 
-    data = [time.strftime("%H:%M:%S"),
-        white_time,
+    data = [
         roi_time,
         transform_time,
         find_time,
