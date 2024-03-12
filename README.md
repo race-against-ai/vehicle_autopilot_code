@@ -1,21 +1,23 @@
 ## Pi-Car-Turbo Project
 
+### Latest files: camera_front -> inside-out
+
+- Adapter -> Modification of the old vehicle using the 3D printer
+- camera_rear: - hough          -> hough algorithm (#outdated)
+               - machine-learn  -> machine learning algorithm (#outdated)
+               - record-video   -> file to record a video (#finished)
+               - samples        -> samples of the car
+
+- camera_front: - sliding-windows -> sliding windows (#outdated)
+                - inside-out      -> efficent technique (#in development)
+
+- camera_record: - video recording -> file to record a video (#finished)
+
+- presentation:  - Explanation of the Hough algorithm: "Explanation of the Hough algorithm"
+                 - Explanation of sliding windows: "Explanation of sliding windows"
+
 ### Overview
 The Pi-Car-Turbo project, initiated by FIAN23, aims to develop a self-driving car equipped with the capability to autonomously navigate a racetrack. Based on the Race against AI project, the vehicle symbolizes advanced automation, incorporating essential elements like the automobile, a Raspberry Pi, a camera, and an electric engine.
-
-Wofür steht welcher Ordner? <br>
-Backup -> erste Sliding Windows Funktion <br>
-Adapter -> Umbau des alten Fahrzeuges Mithilfe des 3D Druckers <br>
-altes Auto -> verschiedenste Ansätze der Implementierungen für das alte Auto <br>
-hough-full -> komplette Hough Lines Implementierung <br>
-hough-mini -> minimale Hough Lines Implementierung um mehr fps zu bekommen <br>
-hough-video -> Hough Lines Implementierung mit Video Output <br>
-machine-learn -> Machine Leran Implementierung zur Linienerkennung <br>
-presentarion -> Abschlusspräsentation der Projektphase <br>
-record video -> Implementierung um Videos aufzunehmen <br>
-sampels -> Bilder des Projektes <br>
-sliding-mini -> minimal Setup für das neue Auto <br>
-sliding-video -> alle Implementierungen für das neue Auto
 
 
 ### Project Goals

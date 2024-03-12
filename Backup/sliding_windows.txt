@@ -1,1 +1,0 @@
-The files represent our initial attempt to implement line detection for the car. The structure roughly corresponds to the final files and can be launched in the same way. This method creates a bird's eye view and tracks the lines using a perspective distortion. To implement the basic method, the following tutorial was used: https://www.youtube.com/watch?v=ApYo6tXcjjQ
