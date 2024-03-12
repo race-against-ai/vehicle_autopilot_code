@@ -1,7 +1,7 @@
 ## Pi-Car-Turbo Project
 
 ### Latest files: camera_front -> inside-out
-
+<br>
 - Adapter -> Modification of the old vehicle using the 3D printer
   <br>
 - camera_rear: <br>
