@@ -1,9 +1,12 @@
 ## Pi-Car-Turbo Project
 
 ### Latest files: camera_front -> inside-out
+### full : for rasperry with stream
+### mini : for rasperry without stream
+### video : local with video
 <br>
-- Adapter -> Modification of the old vehicle using the 3D printer
-  <br>
+- Adapter -> Modification of the old vehicle using the 3D printer <br>
+<br>
 - camera_rear: <br>
 - hough          -> hough algorithm (#outdated) <br>
 - machine-learn  -> machine learning algorithm (#outdated) <br>
