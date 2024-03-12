@@ -72,6 +72,39 @@ class LaneDetection:
         self.dashed_right = False
         self.switch_to = ""
 
+    def find_first_white_pixel(self, image):
+        """
+        function to find pixels in warped image (use it if u change the row indeces)
+        """
+        white_pixels = []
+        for row_index, row in enumerate(image):
+            # Find the index of the first white pixel in the row
+            white_pixel_index = np.where(row == 255)[0]
+            if len(white_pixel_index) > 0:
+                white_pixel_index = white_pixel_index[0]
+                white_pixels.append((row_index, white_pixel_index))
+        print(white_pixels)
+
+    def select_rows_black_rest(self, frame, row_indices):
+        """
+        Select specific rows of pixels from the frame based on the given row indices and set the rest to black.
+        :param frame: The input frame
+        :param row_indices: List of row indices to select
+        :return: Image with only the selected rows of pixels and the rest blacked out
+        """
+        selected_rows = frame[row_indices]
+
+        selected_rows_white = self.white(selected_rows)
+
+        blacked_rest = np.zeros_like(frame)
+        blacked_rest[row_indices] = selected_rows_white
+
+        
+        # Convert to grayscale and apply Gaussian blur
+        gray = cv2.cvtColor(blacked_rest, cv2.COLOR_RGB2GRAY)
+
+        return gray
+
     def white(self, frame):
         """
         Detect white regions in the given frame.
@@ -89,10 +122,7 @@ class LaneDetection:
         # Bitwise-AND mask and original image
         white_pixels = cv2.bitwise_and(frame, frame, mask=mask)
 
-        # Convert to grayscale and apply Gaussian blur
-        gray = cv2.cvtColor(white_pixels, cv2.COLOR_RGB2GRAY)
-
-        return gray
+        return white_pixels
 
 
     def region_of_interest(self, frame, plot=False):
@@ -310,32 +340,41 @@ def main_lanes(frame, lane_detection, debug):
     :param frame: The input frame for lane detection
     :return: Tuple containing the car's center offset and time data collected during the process
     """
-    #timer for process time
-    start_time = time.time()
+     # Row indices to select
+    row_indices = [584, 480, 430, 390, 360, 300]
+    #row_indices = [767, 690, 600, 520, 400, 250]
 
+    roi_start_time = time.time()
+    # Select specific rows of pixels and set the rest to black
+    blacked_image = lane_detection.select_rows_black_rest(frame, row_indices)
+    roi_time = (time.time() - roi_start_time) * 1000
     
     #show region of interest by displaying them
-    roi_start_time = time.time()
-    roi_image = lane_detection.region_of_interest(frame, plot=False)
-    roi_time = (time.time() - roi_start_time) * 1000
-
+    #roi_start_time = time.time()
+    #roi_image = lane_detection.region_of_interest(blacked_image, plot=False)
+    #roi_time = (time.time() - roi_start_time) * 1000
 
     #show only white pixels in image
-    white_start_time = time.time()
-    white_image = lane_detection.white(roi_image)
-    white_time = (time.time() - white_start_time) * 1000
+    #white_start_time = time.time()
+    #white_image = lane_detection.white(blacked_image)
+    #white_time = (time.time() - white_start_time) * 1000
+    white_time = 0
 
+
+    cv2.imshow("blacked", blacked_image)
     #transform perspective
     cropped_start_time = time.time()
-    cropped_image = lane_detection.perspective_transform(white_image, False)
+    cropped_image = lane_detection.perspective_transform(blacked_image, False)
     if debug:
         cv2.imshow('Cropped Image with ROI', cropped_image)
     transform_time = (time.time() - cropped_start_time) * 1000
 
+    #lane_detection.find_first_white_pixel(cropped_image)
+
 
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 690, 600, 520, 400, 250])
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 660, 580, 494, 408, 140])
     find_time = (time.time() - find_start_time) * 1000
 
     #check for dashed side so distance is calculatet right
@@ -346,11 +385,13 @@ def main_lanes(frame, lane_detection, debug):
     #calculate the offset
     center_offset = lane_detection.calculate_steering_angle()
 
+
     #function for switching lane (TO_DO)
     #lane_detection.switch_lane("")
 
     #function to detect curve
     straight = lane_detection.is_curve(debug)
+
 
 
     data = [time.strftime("%H:%M:%S"),
