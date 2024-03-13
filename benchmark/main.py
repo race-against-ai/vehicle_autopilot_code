@@ -52,13 +52,7 @@ if __name__ == "__main__":
         timer.print_time_passed_ms("Preprocessing:")
 
         search_y = 300
-        # results = []
-        # for x in range(width):
-        #     # pixel_value = binary_image[search_y, x]
-        #     pixel_value = binary_image.item(search_y, x)
-        #     if pixel_value == 255:
-        #         results.append(x)
-        results = np.where(binary_image == 255)
+        results = np.where(binary_image[search_y, :] == 255)
 
         timer.print_time_passed_ms("searching:")
 
@@ -69,26 +63,15 @@ if __name__ == "__main__":
                  5)
 
         for i in range(len(results[0])):
-            x = results[1][i]
-            y = results[0][i]
-            cv2.circle(draw_image, (results[1][i], results[0][i]), 3, (255, 0, 0))
+            x = results[0][i]
+            y = search_y
+            cv2.circle(draw_image, (x, y), 3, (255, 0, 0))
 
         timer.print_time_passed_ms("Drawing:")
 
-        # cv2.line(draw_image,
-        #          (0, search_y),
-        #          (width, search_y),
-        #          (0, 0, 255),
-        #          5)
+        # cv2.imshow('binary_image', binary_image)
+        # cv2.imshow('draw_image', draw_image)
         #
-        # for result in results:
-        #     cv2.circle(draw_image, (result, search_y), 3, (255, 0, 0))
         #
-        # timer.print_time_passed_ms("Drawing:")
-
-        cv2.imshow('binary_image', binary_image)
-        cv2.imshow('draw_image', draw_image)
-
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
