@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import matplotlib.pyplot as plt # Used for plotting and error checking
+from vector import Vector
 
 class LaneDetection:
     def __init__(self, orig_frame):
@@ -94,16 +95,12 @@ class LaneDetection:
         """
         selected_rows = frame[row_indices]
 
-        selected_rows_white = self.white(selected_rows)
-
         blacked_rest = np.zeros_like(frame)
-        blacked_rest[row_indices] = selected_rows_white
+        blacked_rest[row_indices] = selected_rows
 
-        
-        # Convert to grayscale and apply Gaussian blur
-        gray = cv2.cvtColor(blacked_rest, cv2.COLOR_RGB2GRAY)
+        white = self.white(blacked_rest)
 
-        return gray
+        return white
 
     def white(self, frame):
         """
@@ -112,17 +109,10 @@ class LaneDetection:
         :return: Image with white regions detected
         """
 
-        # Define range of white color in RGB
-        lower_white = np.array([180, 180, 180], dtype=np.uint8)
-        upper_white = np.array([255, 255, 255], dtype=np.uint8)
+        gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        thresh, binary_image = cv2.threshold(gray_image, 200, 255, cv2.THRESH_BINARY)
 
-        # Threshold the RGB image to get only white colors
-        mask = cv2.inRange(frame, lower_white, upper_white)
-
-        # Bitwise-AND mask and original image
-        white_pixels = cv2.bitwise_and(frame, frame, mask=mask)
-
-        return white_pixels
+        return binary_image
 
 
     def region_of_interest(self, frame, plot=False):
@@ -194,13 +184,13 @@ class LaneDetection:
         for row in pixel_rows:
             left_count = 0
             for i in range(middle, -1, -1):
-                if self.warped_frame[row, i] == 255:
+                if self.warped_frame.item(row, i) == 255:
                     break
                 left_count += 1
 
             right_count = 0
             for i in range(middle, width):
-                if self.warped_frame[row, i] == 255:
+                if self.warped_frame.item(row, i) == 255:
                     break
                 right_count += 1
 
@@ -309,18 +299,24 @@ class LaneDetection:
 
     def is_curve(self, printToTerminal=False):
 
-        if self.left_counts is not None:
-            first_point = self.left_counts[0]
-            second_point = self.left_counts[-1]
 
-            if 0 < (first_point - second_point) < 100:
+        if self.left_counts is not None:
+
+            vector = Vector()
+            point1 = (self.left_counts[0],767)
+            point2 = (self.left_counts[1],660)
+            point_to_check = (self.left_counts[-1],296)
+
+            distance = vector.calculate_distance(point1,point2,point_to_check, debug=False)
+
+            if distance < 50:
                 if printToTerminal:
-                    print(f'Offset einer Linie für Kurve {first_point - second_point}')
+                    print(f'Offset einer Linie für Kurve {distance}')
                     print('Gerade')
                 return False
             else:
                 if printToTerminal:
-                    print(f'Offset einer Linie für Kurven {first_point - second_point}')
+                    print(f'Offset einer Linie für Kurven {distance}')
                     print('Kurve')
                 return True
 
@@ -341,7 +337,7 @@ def main_lanes(frame, lane_detection, debug):
     :return: Tuple containing the car's center offset and time data collected during the process
     """
      # Row indices to select
-    row_indices = [584, 480, 430, 390, 360, 300]
+    row_indices = [584, 480, 430, 390, 360, 330]
     #row_indices = [767, 690, 600, 520, 400, 250]
 
     roi_start_time = time.time()
@@ -360,8 +356,6 @@ def main_lanes(frame, lane_detection, debug):
     #white_time = (time.time() - white_start_time) * 1000
     white_time = 0
 
-
-    cv2.imshow("blacked", blacked_image)
     #transform perspective
     cropped_start_time = time.time()
     cropped_image = lane_detection.perspective_transform(blacked_image, False)
@@ -374,7 +368,7 @@ def main_lanes(frame, lane_detection, debug):
 
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 660, 580, 494, 408, 140])
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 660, 580, 494, 408, 296])
     find_time = (time.time() - find_start_time) * 1000
 
     #check for dashed side so distance is calculatet right
@@ -391,8 +385,6 @@ def main_lanes(frame, lane_detection, debug):
 
     #function to detect curve
     straight = lane_detection.is_curve(debug)
-
-
 
     data = [time.strftime("%H:%M:%S"),
         white_time,
