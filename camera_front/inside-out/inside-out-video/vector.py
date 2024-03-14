@@ -103,12 +103,4 @@ class Vector:
         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         return distance
 
-vector = Vector()
-
-point1 = (2, 1)
-point2 = (4, 5)
-point_to_check = (2, 4) 
-distance = vector.calculate_distance(point1,point2,point_to_check, debug=False)
-print(distance)
-
 
