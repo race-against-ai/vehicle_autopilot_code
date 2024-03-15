@@ -33,7 +33,7 @@ class LaneDetector:
         frame = camera.read_image()
         self.result_frame = cv2.resize(frame, (1024, 768))
 
-        self.straight = None
+        self.curve = None
 
         self.lane_detection = LaneDetection(self.result_frame)
 
@@ -63,7 +63,7 @@ class LaneDetector:
             self.start_time = time.time()
 
             #lane detection
-            self.center_offset, self.data, self.straight = main_lanes(frame, self.lane_detection, self.debug)
+            self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
 
             #calculation for steering angle
             self.calculate_steering_angle()
@@ -84,10 +84,12 @@ class LaneDetector:
             else:
                 driving_instance.left_steering(self.angle)
             if self.motor:
-                if self.straight:
-                    driving_instance.frward_drive(0.20)
+                if self.curve:
+                    driving_instance.frward_drive(0.2)
                 else:
-                    driving_instance.frward_drive(0.15)
+                    driving_instance.frward_drive(0.2)
+            else:
+                driving_instance.frward_drive(0)
 
             if self.stream:
                 pass
@@ -102,10 +104,10 @@ class LaneDetector:
         if abs(self.center_offset) < 0:
             return 0.0
 
-        if self.straight:
-            normalized_offset = self.center_offset / 120
-        else:
+        if self.curve:
             normalized_offset = self.center_offset / 70
+        else:
+            normalized_offset = self.center_offset / 160
 
         normalized_offset *= -1
 

@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import matplotlib.pyplot as plt # Used for plotting and error checking
+from vector import Vector
 
 class LaneDetection:
     def __init__(self, orig_frame):
@@ -20,14 +21,15 @@ class LaneDetection:
         #position of the car in the image
         self.car_cords = np.array([[100, 800], [900, 800], [500, 400]], dtype=np.int32)
 
-        self.warped_points = np.array([[(380, 280), (700, 280), (1044, 585), (-20, 585)]], dtype=np.int32)
+        self.warped_points = np.array([[(300, 280), (920, 280), (1264, 585), (-220, 585)]], dtype=np.int32)
 
         self.roi_points = np.float32([
-            (380,280), # Top-left corner
-            (-20, 585), # Bottom-left corner            
-            (1064,585), # Bottom-right corner
-            (720,280) # Top-right corner
+            (300,280), # Top-left corner
+            (-220, 585), # Bottom-left corner            
+            (1264,585), # Bottom-right corner
+            (920,280) # Top-right corner
         ])
+
 
         # The desired corner locations  of the region of interest
         # after we perform perspective transformation.
@@ -71,6 +73,9 @@ class LaneDetection:
         self.dashed_left = False
         self.dashed_right = False
         self.switch_to = ""
+
+        #class to calculate distance of 3 points
+        self.vector = Vector()
 
     def find_first_white_pixel(self, image):
         """
@@ -193,13 +198,13 @@ class LaneDetection:
         for row in pixel_rows:
             left_count = 0
             for i in range(middle, -1, -1):
-                if self.warped_frame[row, i] == 255:
+                if self.warped_frame.item(row, i) == 255:
                     break
                 left_count += 1
 
             right_count = 0
             for i in range(middle, width):
-                if self.warped_frame[row, i] == 255:
+                if self.warped_frame.item(row, i) == 255:
                     break
                 right_count += 1
 
@@ -309,20 +314,30 @@ class LaneDetection:
     def is_curve(self, printToTerminal=False):
 
         if self.left_counts is not None:
-            first_point = self.left_counts[0]
-            second_point = self.left_counts[-1]
 
-            if 0 < (first_point - second_point) < 100:
+            print(self.left_counts)
+
+            left_some_512 = any(count == 512 for count in self.left_counts)
+            if left_some_512:
+                left = next((val for val in reversed(self.left_counts) if val != 512), None)
+                point_to_check = (left,296)
+            else:
+                point_to_check = (self.left_counts[-1],296)
+
+            point1 = (self.left_counts[0],767)
+            point2 = (self.left_counts[1],660)
+            distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
+
+            if distance < 60 and distance > 20:
                 if printToTerminal:
-                    print(f'Offset einer Linie für Kurve {first_point - second_point}')
+                    print(f'Offset einer Linie für Kurve {distance}')
                     print('Gerade')
                 return False
             else:
                 if printToTerminal:
-                    print(f'Offset einer Linie für Kurven {first_point - second_point}')
+                    print(f'Offset einer Linie für Kurven {distance}')
                     print('Kurve')
                 return True
-
 
     def calculate_steering_angle(self):
         
@@ -339,7 +354,7 @@ def main_lanes(frame, lane_detection, debug):
     :return: Tuple containing the car's center offset and time data collected during the process
     """
      # Row indices to select
-    row_indices = [584, 480, 430, 390, 360, 300]
+    row_indices = [584, 480, 430, 390, 360, 330]
     #row_indices = [767, 690, 600, 520, 400, 250]
 
     roi_start_time = time.time()
@@ -363,12 +378,12 @@ def main_lanes(frame, lane_detection, debug):
     cropped_image = lane_detection.perspective_transform(blacked_image, False)
     transform_time = (time.time() - cropped_start_time) * 1000
 
-    #lane_detection.find_first_white_pixel(cropped_image)
+    lane_detection.find_first_white_pixel(cropped_image)
 
 
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 660, 580, 494, 408, 140])
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 630, 536, 441, 353, 246])
     find_time = (time.time() - find_start_time) * 1000
 
     #check for dashed side so distance is calculatet right
@@ -383,7 +398,7 @@ def main_lanes(frame, lane_detection, debug):
     #lane_detection.switch_lane("")
 
     #function to detect curve
-    straight = lane_detection.is_curve(debug)
+    curve = lane_detection.is_curve(debug)
 
     data = [
         roi_time,
@@ -391,4 +406,4 @@ def main_lanes(frame, lane_detection, debug):
         find_time,
         dashed_time]
 
-    return center_offset, data, straight
+    return center_offset, data, curve
