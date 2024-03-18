@@ -310,35 +310,6 @@ class LaneDetection:
         if self.switch_to == "right" and self.dashed_right == False:
             self.switch_to = ""
 
-
-    def is_curve(self, printToTerminal=False):
-
-        if self.left_counts is not None:
-
-            print(self.left_counts)
-
-            left_some_512 = any(count == 512 for count in self.left_counts)
-            if left_some_512:
-                left = next((val for val in reversed(self.left_counts) if val != 512), None)
-                point_to_check = (left,296)
-            else:
-                point_to_check = (self.left_counts[-1],296)
-
-            point1 = (self.left_counts[0],767)
-            point2 = (self.left_counts[1],660)
-            distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
-
-            if distance < 60 and distance > 20:
-                if printToTerminal:
-                    print(f'Offset einer Linie für Kurve {distance}')
-                    print('Gerade')
-                return False
-            else:
-                if printToTerminal:
-                    print(f'Offset einer Linie für Kurven {distance}')
-                    print('Kurve')
-                return True
-
     def calculate_steering_angle(self):
         
         offset = self.left_offset - self.right_offset
@@ -378,9 +349,6 @@ def main_lanes(frame, lane_detection, debug):
     cropped_image = lane_detection.perspective_transform(blacked_image, False)
     transform_time = (time.time() - cropped_start_time) * 1000
 
-    lane_detection.find_first_white_pixel(cropped_image)
-
-
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
     left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 630, 536, 441, 353, 246])
@@ -397,13 +365,10 @@ def main_lanes(frame, lane_detection, debug):
     #function for switching lane (TO_DO)
     #lane_detection.switch_lane("")
 
-    #function to detect curve
-    curve = lane_detection.is_curve(debug)
-
     data = [
         roi_time,
         transform_time,
         find_time,
         dashed_time]
 
-    return center_offset, data, curve
+    return center_offset, data, (left_counts,right_counts)
