@@ -63,7 +63,7 @@ class LaneDetection:
         self.center_offset = None
 
         #offset of the car
-        self.car_offset = 27
+        self.car_offset = 0
 
         #arrays for detected line points
         self.left_counts = None
@@ -76,6 +76,8 @@ class LaneDetection:
 
         #class to calculate distance of 3 points
         self.vector = Vector()
+
+        
 
     def find_first_white_pixel(self, image):
         """
@@ -328,7 +330,7 @@ class LaneDetection:
             point2 = (self.left_counts[1],660)
             distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
 
-            if distance < 60 and distance > 20:
+            if distance < 40:
                 if printToTerminal:
                     print(f'Offset einer Linie für Kurve {distance}')
                     print('Gerade')
@@ -341,7 +343,7 @@ class LaneDetection:
 
     def calculate_steering_angle(self):
         
-        offset = self.left_offset - self.right_offset
+        offset = self.left_offset - self.right_offset - self.car_offset
 
         return offset
     

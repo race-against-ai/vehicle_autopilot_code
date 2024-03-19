@@ -5,8 +5,8 @@ from PIL import ImageFont, ImageDraw, Image
 import json
 import time
 
-from piracer.cameras import Camera, MonochromeCamera
-camera = MonochromeCamera()
+#from piracer.cameras import Camera, MonochromeCamera
+#camera = MonochromeCamera()
 
 #import for steering left and right
 from driving import Functions_Driving
@@ -30,12 +30,17 @@ class LaneDetector:
 
         self.angle = None
 
-        frame = camera.read_image()
-        self.result_frame = cv2.resize(frame, (1024, 768))
+        self.cap = cv2.VideoCapture(0)
+        #frame = camera.read_image()
+        #self.result_frame = cv2.resize(frame, (1024, 768))
 
         self.curve = None
 
-        self.lane_detection = LaneDetection(self.result_frame)
+        ret, frame = self.cap.read()
+        frame = cv2.resize(frame, (1024, 768))
+        cv2.imwrite("test.png",frame)
+
+        self.lane_detection = LaneDetection(frame)
 
         self.start_time = None
 
@@ -47,6 +52,8 @@ class LaneDetector:
         self.debug = None
         self.placeholder = None
 
+
+
     def process_video(self):
 
         while True:
@@ -54,12 +61,14 @@ class LaneDetector:
             #timer start for process time
             self.start_time = time.time()
 
-            frame = camera.read_image()
-            frame = cv2.resize(frame, (1024, 768))
+            #frame = camera.read_image()
+            #frame = cv2.resize(frame, (1024, 768))
 
             self.detect_changes_in_json()
 
             #lane detection
+            ret, frame = self.cap.read()
+            frame = cv2.resize(frame, (1024, 768))
             self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
 
             #calculation for steering angle
@@ -82,9 +91,9 @@ class LaneDetector:
                 driving_instance.left_steering(self.angle)
             if self.motor:
                 if self.curve:
-                    driving_instance.frward_drive(0.2)
+                    driving_instance.frward_drive(0.3)
                 else:
-                    driving_instance.frward_drive(0.2)
+                    driving_instance.frward_drive(0.5)
             else:
                 driving_instance.frward_drive(0)
 
