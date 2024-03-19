@@ -1,8 +1,1 @@
-{
-    "stream": false,
-    "process": true,
-    "motor": false,
-    "debug": false,
-    "placeholder": false
-  }
-  
+{"stream": false, "process": true, "motor": true, "debug": false, "reboot": false, "placeholder": false}

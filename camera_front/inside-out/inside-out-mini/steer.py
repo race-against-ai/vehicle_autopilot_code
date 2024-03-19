@@ -80,8 +80,6 @@ def calculate_steering_angle(center_offset, curve):
     """
     if abs(center_offset) < 0:
         return 0.0
-    elif abs(center_offset) < 30:
-        return 0.0
 
     if curve:
         normalized_offset = center_offset / 70
@@ -90,8 +88,8 @@ def calculate_steering_angle(center_offset, curve):
 
     normalized_offset *= -1
 
-    angle = np.clip(normalized_offset, -1, 1)
+    angle = np.clip(normalized_offset, -0.8, 0.8)
 
-    print(angle)
+    print(f'Steering angle: {angle}')
 
     return angle
