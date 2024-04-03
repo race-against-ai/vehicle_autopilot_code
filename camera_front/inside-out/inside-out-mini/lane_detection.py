@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import time
-import matplotlib.pyplot as plt # Used for plotting and error checking
 from vector import Vector
 
 class LaneDetection:
@@ -21,13 +20,13 @@ class LaneDetection:
         #position of the car in the image
         self.car_cords = np.array([[100, 800], [900, 800], [500, 400]], dtype=np.int32)
 
-        self.warped_points = np.array([[(300, 280), (920, 280), (1264, 585), (-220, 585)]], dtype=np.int32)
+        self.warped_points = np.array([[(300, 280), (800, 280), (1264, 585), (-220, 585)]], dtype=np.int32)
 
         self.roi_points = np.float32([
             (300,280), # Top-left corner
             (-220, 585), # Bottom-left corner            
             (1264,585), # Bottom-right corner
-            (920,280) # Top-right corner
+            (800,280) # Top-right corner
         ])
 
 
@@ -76,6 +75,8 @@ class LaneDetection:
 
         #class to calculate distance of 3 points
         self.vector = Vector()
+
+        self.rows_to_search = [767, 652, 570, 480, 394, 69]
 
         
 
@@ -210,7 +211,7 @@ class LaneDetection:
                     break
                 right_count += 1
 
-            left_counts.append(left_count)
+            left_counts.append(left_count - 20)  #-10 because of slightly tilted cam
             right_counts.append(right_count)
 
         self.left_counts = left_counts
@@ -218,7 +219,7 @@ class LaneDetection:
 
         return left_counts, right_counts
     
-    def dashed_side(self, printToTerminal):
+    def dashed_side(self, printToTerminal, curve):
 
         #just for straight
         #if curve == False
@@ -247,12 +248,14 @@ class LaneDetection:
         elif left_some_512:
             if printToTerminal:
                 info_left =  "Dashed line on the left"
+
             distance_left = next((val for val in self.left_counts if val != 512), None)
             self.dashed_left = True
         #left no 512 = straight line -> use first
         elif left_no_512:
             if printToTerminal:
                 info_left = "Straight line on the left"
+
             distance_left = next((val for val in self.left_counts if val != 512), None)
             self.dashed_left = False
         
@@ -265,6 +268,7 @@ class LaneDetection:
         elif right_some_512:
             if printToTerminal:
                 info_right =  "Dashed line on the right"
+
             distance_right = next((val for val in self.right_counts if val != 512), None)
             self.dashed_right = True
         #right no 512 = straight line -> use first
@@ -312,34 +316,74 @@ class LaneDetection:
         if self.switch_to == "right" and self.dashed_right == False:
             self.switch_to = ""
 
+    def negative_numbers(self):
+
+        for num1, num2 in zip(self.left_counts, self.right_counts):
+
+            if num1 < 0:
+                return True
+            if num2 < 0:
+                return True
+        
+        return False
+    
+    def find_position_of_value(array, value_to_find):
+        for i, val in enumerate(reversed(array)):
+            if val != value_to_find:
+                return len(array) - i - 1  # Calculate the position of the value
 
     def is_curve(self, printToTerminal=False):
 
-        if self.left_counts is not None:
+        #[767, 652, 570, 480, 394, 69]
 
-            print(self.left_counts)
+        #experimental: if one distance is negative its maybe a straight line:
+        if self.negative_numbers():
 
-            left_some_512 = any(count == 512 for count in self.left_counts)
-            if left_some_512:
-                left = next((val for val in reversed(self.left_counts) if val != 512), None)
-                point_to_check = (left,296)
+            return False
+        
+        else:
+
+            print("no negative")
+
+            if self.dashed_left:
+                array = self.right_counts
+            elif self.dashed_right:
+                array = self.left_counts
             else:
-                point_to_check = (self.left_counts[-1],296)
+                array = self.left_counts
 
-            point1 = (self.left_counts[0],767)
-            point2 = (self.left_counts[1],660)
-            distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
+            if array is not None:
 
-            if distance < 40:
-                if printToTerminal:
-                    print(f'Offset einer Linie für Kurve {distance}')
-                    print('Gerade')
-                return False
-            else:
-                if printToTerminal:
-                    print(f'Offset einer Linie für Kurven {distance}')
-                    print('Kurve')
-                return True
+                #if some points in array are 512 (dashed line f.e.) search for pair of numbers that are not 512, otherwise just use the last
+                some_512 = any(count == 512 for count in array)
+                if some_512:
+                    val = next((val for val in reversed(array) if val != 512), None)
+                    position = self.find_position_of_value(array, val)
+                    #if position is one of the first two values (4 or 5) it should not use them bcs the line would be straight whatever happens
+                    if position == 4 or position == 5:
+                        point_to_check = (array[-1],self.rows_to_search[-1])
+                    else:
+                        point_to_check = (val,self.rows_to_search[position])
+                else:
+                    point_to_check = (array[-1],self.rows_to_search[-1])
+
+                point1 = (array[0],self.rows_to_search[0])
+                point2 = (array[1],self.rows_to_search[1])
+                distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
+
+                print(distance)
+
+                #40 is an assumed value for detecting a curve, might be changed
+                if distance < 40:
+                    if printToTerminal:
+                        print(f'Offset einer Linie für Kurve {distance}')
+                        print('Gerade')
+                    return False
+                else:
+                    if printToTerminal:
+                        print(f'Offset einer Linie für Kurven {distance}')
+                        print('Kurve')
+                    return True
 
     def calculate_steering_angle(self):
         
@@ -356,23 +400,13 @@ def main_lanes(frame, lane_detection, debug):
     :return: Tuple containing the car's center offset and time data collected during the process
     """
      # Row indices to select
-    row_indices = [584, 480, 430, 390, 360, 330]
-    #row_indices = [767, 690, 600, 520, 400, 250]
+    row_indices = [584, 480, 430, 390, 360, 290]
 
     roi_start_time = time.time()
     # Select specific rows of pixels and set the rest to black
     blacked_image = lane_detection.select_rows_black_rest(frame, row_indices)
     roi_time = (time.time() - roi_start_time) * 1000
     
-    #show region of interest by displaying them
-    #roi_start_time = time.time()
-    #roi_image = lane_detection.region_of_interest(blacked_image, plot=False)
-    #roi_time = (time.time() - roi_start_time) * 1000
-
-    #show only white pixels in image
-    #white_start_time = time.time()
-    #white_image = lane_detection.white(blacked_image)
-    #white_time = (time.time() - white_start_time) * 1000
     white_time = 0
 
     #transform perspective
@@ -385,12 +419,17 @@ def main_lanes(frame, lane_detection, debug):
 
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 630, 536, 441, 353, 246])
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 652, 570, 480, 394, 69])
+    print(left_counts)
+    print(right_counts)
     find_time = (time.time() - find_start_time) * 1000
+
+    #function to detect curve
+    curve = lane_detection.is_curve(debug)
 
     #check for dashed side so distance is calculatet right
     dashed_start_time = time.time()
-    distance_left, distance_right = lane_detection.dashed_side(debug)
+    distance_left, distance_right = lane_detection.dashed_side(debug, curve)
     dashed_time = (time.time() - dashed_start_time) * 1000
 
     #calculate the offset
@@ -398,9 +437,6 @@ def main_lanes(frame, lane_detection, debug):
 
     #function for switching lane (TO_DO)
     #lane_detection.switch_lane("")
-
-    #function to detect curve
-    curve = lane_detection.is_curve(debug)
 
     data = [
         roi_time,

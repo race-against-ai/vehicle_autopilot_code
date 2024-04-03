@@ -4,9 +4,7 @@ import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 import json
 import time
-
-#from piracer.cameras import Camera, MonochromeCamera
-#camera = MonochromeCamera()
+import os
 
 #import for steering left and right
 from driving import Functions_Driving
@@ -15,6 +13,10 @@ driving_instance = Functions_Driving()
 #import line detection
 from lane_detection import LaneDetection, main_lanes
 
+#set camera filter and rotation at start
+device_path='/dev/video0'
+os.system(f'v4l2-ctl -d {device_path} --set-ctrl=rotate={180}')
+os.system(f'v4l2-ctl -d {device_path} --set-ctrl=color_effects=1') # Run 'v4l2-ctl -L' for explanations
 
 class LaneDetector:
     def __init__(self):
@@ -38,7 +40,8 @@ class LaneDetector:
 
         ret, frame = self.cap.read()
         frame = cv2.resize(frame, (1024, 768))
-        cv2.imwrite("test.png",frame)
+        #frame = cv2.rotate(frame, cv2.ROTATE_180)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         self.lane_detection = LaneDetection(frame)
 
@@ -61,15 +64,15 @@ class LaneDetector:
             #timer start for process time
             self.start_time = time.time()
 
-            #frame = camera.read_image()
-            #frame = cv2.resize(frame, (1024, 768))
-
             self.detect_changes_in_json()
 
             #lane detection
             ret, frame = self.cap.read()
             frame = cv2.resize(frame, (1024, 768))
+
             self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
+
+            print(self.curve)
 
             #calculation for steering angle
             self.calculate_steering_angle()
@@ -91,15 +94,14 @@ class LaneDetector:
                 driving_instance.left_steering(self.angle)
             if self.motor:
                 if self.curve:
-                    driving_instance.frward_drive(0.3)
+                    driving_instance.frward_drive(0.19) #0.4
                 else:
-                    driving_instance.frward_drive(0.5)
+                    driving_instance.frward_drive(0.19) #0.56
             else:
                 driving_instance.frward_drive(0)
 
             if self.stream:
                 pass
-
 
     def calculate_steering_angle(self):
         """
@@ -112,14 +114,14 @@ class LaneDetector:
 
         if self.curve:
             normalized_offset = self.center_offset / 70
+            #if normalized_offset > 0:
+            #    normalized_offset = 0
         else:
-            normalized_offset = self.center_offset / 160
+            normalized_offset = self.center_offset / 200
 
-        normalized_offset *= -1
+        #normalized_offset *= -1
 
         self.angle = np.clip(normalized_offset, -0.8, 0.8)
-
-        print(self.angle)
 
     def calculate_process_time(self):
         total_time = (time.time() - self.start_time) * 1000
