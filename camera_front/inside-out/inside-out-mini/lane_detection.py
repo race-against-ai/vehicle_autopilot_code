@@ -20,13 +20,13 @@ class LaneDetection:
         #position of the car in the image
         self.car_cords = np.array([[100, 800], [900, 800], [500, 400]], dtype=np.int32)
 
-        self.warped_points = np.array([[(300, 280), (800, 280), (1264, 585), (-220, 585)]], dtype=np.int32)
+        self.warped_points = np.array([[(300, 280), (724, 280), (1024, 585), (0, 585)]], dtype=np.int32)
 
         self.roi_points = np.float32([
             (300,280), # Top-left corner
-            (-220, 585), # Bottom-left corner            
-            (1264,585), # Bottom-right corner
-            (800,280) # Top-right corner
+            (0, 585), # Bottom-left corner            
+            (1024,585), # Bottom-right corner
+            (724,280) # Top-right corner
         ])
 
 
@@ -138,19 +138,24 @@ class LaneDetection:
         :param frame: The input frame to mask the ROI on
         :param plot: Whether to display the plotted image or not
         """
-        # Create a mask of zeros with the same shape as the frame
-        mask = np.zeros_like(frame)
+        # Create a mask of zeros with the same shape as the frame if not created already
+        if not hasattr(self, 'mask'):
+            self.mask = np.zeros_like(frame)
+
+        # Reset the mask to zeros
+        self.mask.fill(0)
 
         # Define region of interest by filling the area within roi_points with white
-        cv2.fillPoly(mask, self.warped_points, (255, 255, 255))
+        cv2.fillPoly(self.mask, self.warped_points, (255, 255, 255))
 
         # Bitwise AND between the frame and the mask to keep only the region of interest
-        masked_frame = cv2.bitwise_and(frame, mask)
+        masked_frame = cv2.bitwise_and(frame, self.mask)
 
         if plot:
             cv2.imshow('Masked Image', masked_frame)
 
         return masked_frame
+
 
     
     def perspective_transform(self, frame=None, plot=False):
@@ -178,6 +183,8 @@ class LaneDetection:
         (thresh, binary_warped) = cv2.threshold(
         self.warped_frame, 127, 255, cv2.THRESH_BINARY)           
         self.warped_frame = binary_warped
+
+        #cv2.imwrite("test.png", self.warped_frame)
     
         # Display the perspective transformed (i.e. warped) frame
         if plot == True:
@@ -211,7 +218,7 @@ class LaneDetection:
                     break
                 right_count += 1
 
-            left_counts.append(left_count - 20)  #-10 because of slightly tilted cam
+            left_counts.append(left_count) 
             right_counts.append(right_count)
 
         self.left_counts = left_counts
@@ -239,6 +246,9 @@ class LaneDetection:
         left_no_512 = not any(count == 512 for count in self.left_counts)
         right_no_512 = not any(count == 512 for count in self.right_counts)
 
+        print(self.left_counts)
+        print(self.right_counts)
+
         #left all 512 = no line left
         if left_all_512:
             if printToTerminal:
@@ -248,15 +258,19 @@ class LaneDetection:
         elif left_some_512:
             if printToTerminal:
                 info_left =  "Dashed line on the left"
-
-            distance_left = next((val for val in self.left_counts if val != 512), None)
+            if curve:
+                distance_left = next((val for val in self.left_counts if val != 512), None)
+            else:
+                distance_left = next((val for val in self.left_counts if val != 512), None)
             self.dashed_left = True
         #left no 512 = straight line -> use first
         elif left_no_512:
             if printToTerminal:
                 info_left = "Straight line on the left"
-
-            distance_left = next((val for val in self.left_counts if val != 512), None)
+            if curve:
+                distance_left = next((val for val in self.left_counts if val != 512), None)
+            else:
+                distance_left = next((val for val in self.left_counts if val != 512), None)
             self.dashed_left = False
         
         #right all 512 = no line right
@@ -268,14 +282,24 @@ class LaneDetection:
         elif right_some_512:
             if printToTerminal:
                 info_right =  "Dashed line on the right"
-
-            distance_right = next((val for val in self.right_counts if val != 512), None)
+            if curve:
+                distance_right = next((val for val in self.right_counts[1:-1] if val != 512), None)
+                if distance_right == None or distance_right == 0:
+                    if self.right_counts[0] != 512 or self.right_counts[0] != 0:
+                        distance_right = self.right_counts[0]
+                    else:
+                        distance_right = 512
+            else:
+                distance_right = next((val for val in self.right_counts if val != 512), None)
             self.dashed_right = True
         #right no 512 = straight line -> use first
         elif right_no_512:
             if printToTerminal:
                 info_right = "Straight line on the right"
-            distance_right = next((val for val in self.right_counts if val != 512), None)
+            if curve:
+                distance_right = next((val for val in self.right_counts[1:-1] if val != 512), None)
+            else:
+                distance_right = next((val for val in self.right_counts if val != 512), None)
             self.dashed_right = False
 
         if printToTerminal:
@@ -327,6 +351,7 @@ class LaneDetection:
         
         return False
     
+    @staticmethod
     def find_position_of_value(array, value_to_find):
         for i, val in enumerate(reversed(array)):
             if val != value_to_find:
@@ -342,8 +367,6 @@ class LaneDetection:
             return False
         
         else:
-
-            print("no negative")
 
             if self.dashed_left:
                 array = self.right_counts
@@ -371,23 +394,23 @@ class LaneDetection:
                 point2 = (array[1],self.rows_to_search[1])
                 distance = self.vector.calculate_distance(point1,point2,point_to_check, debug=False)
 
-                print(distance)
-
                 #40 is an assumed value for detecting a curve, might be changed
                 if distance < 40:
                     if printToTerminal:
                         print(f'Offset einer Linie für Kurve {distance}')
                         print('Gerade')
-                    return False
+                    return False, distance
                 else:
                     if printToTerminal:
                         print(f'Offset einer Linie für Kurven {distance}')
                         print('Kurve')
-                    return True
+                    return True, distance
 
     def calculate_steering_angle(self):
         
         offset = self.left_offset - self.right_offset - self.car_offset
+
+        print(offset)
 
         return offset
     
@@ -400,32 +423,28 @@ def main_lanes(frame, lane_detection, debug):
     :return: Tuple containing the car's center offset and time data collected during the process
     """
      # Row indices to select
-    row_indices = [584, 480, 430, 390, 360, 290]
+    row_indices = [584, 510, 470, 420, 390, 350] #290
 
     roi_start_time = time.time()
     # Select specific rows of pixels and set the rest to black
     blacked_image = lane_detection.select_rows_black_rest(frame, row_indices)
+    roi = lane_detection.region_of_interest(blacked_image)
     roi_time = (time.time() - roi_start_time) * 1000
-    
-    white_time = 0
 
     #transform perspective
     cropped_start_time = time.time()
-    cropped_image = lane_detection.perspective_transform(blacked_image, False)
+    cropped_image = lane_detection.perspective_transform(roi, False)
     transform_time = (time.time() - cropped_start_time) * 1000
 
     #lane_detection.find_first_white_pixel(cropped_image)
 
-
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 652, 570, 480, 394, 69])
-    print(left_counts)
-    print(right_counts)
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 676, 614, 516, 443, 320]) #69
     find_time = (time.time() - find_start_time) * 1000
 
     #function to detect curve
-    curve = lane_detection.is_curve(debug)
+    curve, distance = lane_detection.is_curve(debug)
 
     #check for dashed side so distance is calculatet right
     dashed_start_time = time.time()
@@ -444,4 +463,11 @@ def main_lanes(frame, lane_detection, debug):
         find_time,
         dashed_time]
 
+    #save_number_to_file(curve, distance_left, distance_right, distance)
+
     return center_offset, data, curve
+
+def save_number_to_file(curve, distance_left, distance_right, distance):
+    filename = 'curve.txt'
+    with open(filename, 'a') as file:  # Use 'a' mode to append to the file
+        file.write(f"{curve}, {distance_left}, {distance_right}, {distance}\n")

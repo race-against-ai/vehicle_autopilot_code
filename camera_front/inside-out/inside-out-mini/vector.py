@@ -41,18 +41,21 @@ class Vector:
         return distance
 
     def _straight_line_equation_with_two_points(self, debug = False):
-        x1, y1 = self._point1
-        x2, y2 = self._point2
+        #x1, _ = self._point1
+        #x2, y2 = self._point2
+        x, _ = self._point1
+        y1 = 768
+        y2 = 0
 
         # Calculate the slope m
-        if x2 - x1 != 0:
-            m = (y2 - y1) / (x2 - x1)
+        if x - x != 0:
+            m = (y2 - y1) / (x - x)
         else:
             # Handle the case of a vertical line
-            m = float('inf')
+            m = 1e9
 
         # Calculate the y-intercept b
-        b = y1 - m * x1
+        b = y1 - m * x
 
         # Return the equation
         if debug:
@@ -80,21 +83,23 @@ class Vector:
         self._orthogonal_intercept = orthogonal_intercept
 
 
-    def _intersection_point_between_lines(self, debug = False):
-        # Calculate the x-coordinate of the intersection point
-        if self._line_slope != 0:  # Special case when the slope of the given line is not zero
-            x_intersection = (self._orthogonal_intercept - self._line_intercept) / (self._line_slope - self._orthogonal_slope)
+    def _intersection_point_between_lines(self, debug=False):
+        if self._line_slope == float('inf'):  # Special case for a vertical line
+            x_intersection = self._point_to_check[0]  # x-coordinate of the intersection is the x-coordinate of the vertical line
+            y_intersection = self._line_intercept  # y-coordinate of the intersection is the y-intercept of the vertical line
         else:
-            x_intersection = (self._orthogonal_intercept - self._line_intercept)  # x-coordinate of the intersection point is the y-intercept of the given line
+            # Calculate the x-coordinate of the intersection point
+            x_intersection = (self._orthogonal_intercept - self._line_intercept) / (self._line_slope - self._orthogonal_slope)
 
-        # Calculate the y-coordinate of the intersection point
-        y_intersection = self._line_slope * x_intersection + self._line_intercept
+            # Calculate the y-coordinate of the intersection point
+            y_intersection = self._line_slope * x_intersection + self._line_intercept
 
         if debug:
             print(f'x: {x_intersection}, y: {y_intersection}')
 
         self._x_intersection = x_intersection
         self._y_intersection = y_intersection
+
 
     def _distance_between_two_points(self):
         x1, y1 = self._point_to_check

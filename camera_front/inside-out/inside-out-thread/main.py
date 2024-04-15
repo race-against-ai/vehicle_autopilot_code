@@ -4,9 +4,9 @@ import numpy as np
 from PIL import ImageFont, ImageDraw, Image
 import json
 import time
-
-#from piracer.cameras import Camera, MonochromeCamera
-#camera = MonochromeCamera()
+import os
+from stream_html import update_frame, init
+import threading
 
 #import for steering left and right
 from driving import Functions_Driving
@@ -15,6 +15,10 @@ driving_instance = Functions_Driving()
 #import line detection
 from lane_detection import LaneDetection, main_lanes
 
+#set camera filter and rotation at start
+device_path='/dev/video0'
+os.system(f'v4l2-ctl -d {device_path} --set-ctrl=rotate={180}')
+os.system(f'v4l2-ctl -d {device_path} --set-ctrl=color_effects=1') # Run 'v4l2-ctl -L' for explanations
 
 class LaneDetector:
     def __init__(self):
@@ -30,7 +34,18 @@ class LaneDetector:
 
         self.angle = None
 
-        self.lane_detection = LaneDetection()
+        self.cap = cv2.VideoCapture(0)
+        #frame = camera.read_image()
+        #self.result_frame = cv2.resize(frame, (1024, 768))
+
+        self.curve = None
+
+        ret, frame = self.cap.read()
+        frame = cv2.resize(frame, (1024, 768))
+        #frame = cv2.rotate(frame, cv2.ROTATE_180)
+        #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        self.lane_detection = LaneDetection(frame)
 
         self.start_time = None
 
@@ -42,45 +57,81 @@ class LaneDetector:
         self.debug = None
         self.placeholder = None
 
+        self.steering_offset = 0.21
 
+        frame_width = 1024
+        frame_height = 768
+        fps = int(self.cap.get(cv2.CAP_PROP_FPS))
 
-    def process_video(self, frame):
-        print("hello")
-        #timer start for process time
-        self.start_time = time.time()
+        self.fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Codec for saving video (XVID for .avi)
+        self.out = cv2.VideoWriter('output_video.avi', self.fourcc, fps, (frame_width, frame_height))
 
-        self.detect_changes_in_json()
-        self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
+    def process_video(self):
 
-        #calculation for steering angle
-        self.calculate_steering_angle()
+        while True:
 
-        #process time
-        total_time, fps, average_time, average_fps, min_fps = self.calculate_process_time()
-        self.data = self.update_data(self.data, total_time, fps, average_time, average_fps, min_fps)
+            #timer start for process time
+            self.start_time = time.time()
+
+            self.detect_changes_in_json()
+
+            #lane detection
+            ret, frame = self.cap.read()
+            frame = cv2.resize(frame, (1024, 768))
+
+            calib_time = time.time()
+            #calibrate cam image
+            #frame = calib(frame)
+            update_frame(frame)
+            calibration_time = (time.time() - calib_time) * 1000
+
+            self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
+
+            #calculation for steering angle
+            self.calculate_steering_angle()
+
+            #process time
+            total_time, fps, average_time, average_fps, min_fps = self.calculate_process_time()
+            self.data = self.update_data(self.data, total_time, fps, average_time, average_fps, min_fps, calibration_time)
             
-        #display result
-        if self.process:
-            self.print_table()
-        self.iterations += 1
+            #display result
+            if self.process:
+                self.print_table()
+            self.iterations += 1
 
-        # if self.angle == 0:
-        #     driving_instance.neutral_steering()
-        # elif self.angle < 0:
-        #     driving_instance.left_steering(self.angle)
-        # else:
-        #     driving_instance.left_steering(self.angle)
-        # if self.motor:
-        #     if self.curve:
-        #         driving_instance.frward_drive(0.4)
-        #     else:
-        #         driving_instance.frward_drive(0.56)
-        # else:
-        #     driving_instance.frward_drive(0)
+            print(self.angle)
 
-        # if self.stream:
-        #     pass
+            if self.angle == 0:
+                driving_instance.left_steering(-self.steering_offset)
+            elif self.angle < 0:
+                driving_instance.left_steering(self.angle - self.steering_offset)
+            else:
+                driving_instance.left_steering(self.angle - self.steering_offset)
+            if self.motor:
+                if self.curve:
+                    driving_instance.frward_drive(0.12) #0.4
+                else:
+                    driving_instance.frward_drive(0.13) #0.56
+            else:
+                driving_instance.frward_drive(0)
 
+            if self.stream:
+                pass
+
+            from datetime import datetime
+            print(datetime.now())
+
+            #self.out.write(frame)
+            #self.save_number_to_file(self.angle)
+
+    def save_number_to_file(self,number):
+        filename = 'angle.txt'
+        try:
+            with open(filename, 'a') as file:  # Use 'a' mode to append to the file
+                file.write(str(number) + '\n')
+            print(f"Number {number} successfully saved to {filename}")
+        except Exception as e:
+            print(f"Error occurred while saving number {number}: {e}")
 
     def calculate_steering_angle(self):
         """
@@ -88,23 +139,17 @@ class LaneDetector:
         :param offset: Offset from the middle (-250 to 250)
         :return: Steering angle in range [-1, 1]
         """
-        if abs(self.center_offset) < 0:
-            return 0.0
-    
-        print(self.center_offset)
 
         if self.curve:
-            normalized_offset = self.center_offset / 70
-            if normalized_offset > 0:
-                normalized_offset = 0
+            normalized_offset = self.center_offset / 350
+            #if normalized_offset > 0:
+            #    normalized_offset = 0
         else:
-            normalized_offset = self.center_offset / 160
+            normalized_offset = (self.center_offset) / 800
 
-        normalized_offset *= -1
+        #normalized_offset *= -1
 
-        self.angle = np.clip(normalized_offset, -0.8, 0.8)
-
-        print(self.angle)
+        self.angle = np.clip(normalized_offset, -0.9, 0.9)
 
     def calculate_process_time(self):
         total_time = (time.time() - self.start_time) * 1000
@@ -118,7 +163,8 @@ class LaneDetector:
         return total_time, fps, average_time, average_fps, self.min_fps
 
     @staticmethod
-    def update_data(data, total_time, fps, average_time, average_fps, min_fps):
+    def update_data(data, total_time, fps, average_time, average_fps, min_fps, calibration_time):
+        data.append(calibration_time)
         data.append(total_time)
         data.append(fps)
         data.append(average_time)
@@ -128,8 +174,10 @@ class LaneDetector:
 
     def print_table(self):
 
+        self.data = [round(num, 3) if isinstance(num, float) else num for num in self.data]
+
         table = PrettyTable()
-        table.field_names = ["Rows selection", "Transform", "Sliding Lane", "Car Position" , "Total Main Loop", "FPS", "Average Time", "Average FPS", "min FPS"]
+        table.field_names = ["Rows selection", "Transform", "Sliding Lane", "Car Position" , "Calibration" , "Total Main Loop", "FPS", "Average Time", "Average FPS", "min FPS"]
         table.add_row(self.data)
 
         print(table)
@@ -149,4 +197,8 @@ class LaneDetector:
 
 if __name__ == "__main__":
     lane_detector = LaneDetector()
-    lane_detector.process_video()
+    #start the backround-thread for the frame
+    main_thread = threading.Thread(target=lane_detector.process_video)
+    stream_thread = threading.Thread(target=init)
+    main_thread.start()
+    stream_thread.start()
