@@ -5,8 +5,7 @@ from traceback import print_exc
 from threading import Condition
 from PIL import Image
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
-stream_frame = None
+import queue
 
 #html website
 PAGE = """\
@@ -231,8 +230,8 @@ class StreamingHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def getStream(self, path):
-        global stream_frame
         #send the corresponding stream based on the requested type
+        stream_frame = getQueue()
         if path == 'canny_html':
             self.send_frame(stream_frame)
         elif path == 'field_of_interest_html':
@@ -282,9 +281,20 @@ def init():
     finally:
         pass
 
-def update_frame(frame):
-    global stream_frame
-    stream_frame = frame
+image_queue = queue.Queue(maxsize=1)
+
+def isFull():
+    if image_queue.full() == True:
+        return True
+    else:
+        return False
+    
+def putQueue(item):
+    if not isFull():
+        image_queue.put(item)
+
+def getQueue():
+    return image_queue.get(block=True)
 
 if __name__ == "__main__":
     init()

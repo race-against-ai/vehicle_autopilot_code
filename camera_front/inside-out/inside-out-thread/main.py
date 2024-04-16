@@ -5,7 +5,7 @@ from PIL import ImageFont, ImageDraw, Image
 import json
 import time
 import os
-from stream_html import update_frame, init
+from stream_html import putQueue, init
 import threading
 
 #import for steering left and right
@@ -35,6 +35,7 @@ class LaneDetector:
         self.angle = None
 
         self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         #frame = camera.read_image()
         #self.result_frame = cv2.resize(frame, (1024, 768))
 
@@ -82,7 +83,7 @@ class LaneDetector:
             calib_time = time.time()
             #calibrate cam image
             #frame = calib(frame)
-            update_frame(frame)
+            
             calibration_time = (time.time() - calib_time) * 1000
 
             self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
@@ -120,6 +121,8 @@ class LaneDetector:
 
             from datetime import datetime
             print(datetime.now())
+
+            putQueue(frame)
 
             #self.out.write(frame)
             #self.save_number_to_file(self.angle)
