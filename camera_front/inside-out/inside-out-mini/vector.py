@@ -41,21 +41,18 @@ class Vector:
         return distance
 
     def _straight_line_equation_with_two_points(self, debug = False):
-        #x1, _ = self._point1
-        #x2, y2 = self._point2
-        x, _ = self._point1
-        y1 = 768
-        y2 = 0
+        x1, y1 = self._point1
+        x2, y2 = self._point2
 
         # Calculate the slope m
-        if x - x != 0:
-            m = (y2 - y1) / (x - x)
+        if x2 - x1 != 0:
+            m = (y2 - y1) / (x2 - x1)
         else:
             # Handle the case of a vertical line
             m = 1e9
 
         # Calculate the y-intercept b
-        b = y1 - m * x
+        b = y1 - m * x1
 
         # Return the equation
         if debug:

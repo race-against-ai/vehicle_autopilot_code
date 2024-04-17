@@ -40,6 +40,7 @@ class LaneDetector:
         #self.result_frame = cv2.resize(frame, (1024, 768))
 
         self.curve = None
+        self.speed_curve = None
 
         ret, frame = self.cap.read()
         frame = cv2.resize(frame, (1024, 768))
@@ -76,17 +77,13 @@ class LaneDetector:
 
             self.detect_changes_in_json()
 
+            calib_time = time.time()
             #lane detection
             ret, frame = self.cap.read()
             frame = cv2.resize(frame, (1024, 768))
-
-            calib_time = time.time()
-            #calibrate cam image
-            #frame = calib(frame)
-            
             calibration_time = (time.time() - calib_time) * 1000
 
-            self.center_offset, self.data, self.curve = main_lanes(frame, self.lane_detection, self.debug)
+            self.center_offset, self.data, self.curve, self.speed_curve = main_lanes(frame, self.lane_detection, self.debug, self.placeholder)
 
             #calculation for steering angle
             self.calculate_steering_angle()
@@ -100,8 +97,6 @@ class LaneDetector:
                 self.print_table()
             self.iterations += 1
 
-            print(self.angle)
-
             if self.angle == 0:
                 driving_instance.left_steering(-self.steering_offset)
             elif self.angle < 0:
@@ -109,7 +104,7 @@ class LaneDetector:
             else:
                 driving_instance.left_steering(self.angle - self.steering_offset)
             if self.motor:
-                if self.curve:
+                if self.speed_curve or self.curve:
                     driving_instance.frward_drive(0.12) #0.4
                 else:
                     driving_instance.frward_drive(0.13) #0.56
@@ -118,9 +113,6 @@ class LaneDetector:
 
             if self.stream:
                 pass
-
-            from datetime import datetime
-            print(datetime.now())
 
             putQueue(frame)
 
