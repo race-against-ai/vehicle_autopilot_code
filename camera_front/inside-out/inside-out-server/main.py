@@ -6,6 +6,8 @@ import json
 import time
 import os
 from calib_cam import calib
+from sender import sender_frame, putQueue
+import threading
 
 #import for steering left and right
 from driving import Functions_Driving
@@ -133,6 +135,8 @@ class LaneDetector:
             else:
                 driving_instance.frward_drive(0)
 
+            putQueue(frame)
+
             #self.out.write(frame)
             #self.save_number_to_file(self.angle)
 
@@ -153,7 +157,7 @@ class LaneDetector:
         """
 
         if self.curve:
-            normalized_offset = self.center_offset / 380
+            normalized_offset = self.center_offset / 350
             #if normalized_offset > 0:
             #    normalized_offset = 0
         else:
@@ -209,4 +213,8 @@ class LaneDetector:
 
 if __name__ == "__main__":
     lane_detector = LaneDetector()
-    lane_detector.process_video()
+    #start the backround-thread for the frame
+    main_thread = threading.Thread(target=lane_detector.process_video)
+    stream_thread = threading.Thread(target=sender_frame)
+    main_thread.start()
+    stream_thread.start()

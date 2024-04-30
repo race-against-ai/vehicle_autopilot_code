@@ -308,9 +308,6 @@ class LaneDetection:
         self.left_offset = distance_left
         self.right_offset = distance_right
 
-        print(distance_left)
-        print(distance_right)
-
         return distance_left, distance_right
 
         #if curve == True
@@ -438,8 +435,6 @@ class LaneDetection:
         
         offset = self.left_offset - self.right_offset - self.car_offset
 
-        print(offset)
-
         return offset
     
 def main_lanes(frame, lane_detection, debug, placeholder):
@@ -472,9 +467,6 @@ def main_lanes(frame, lane_detection, debug, placeholder):
     left_counts, right_counts = lane_detection.find_nearest_white_pixels([676, 662, 614, 516, 443, 320, 0]) #69
     find_time = (time.time() - find_start_time) * 1000
 
-    print(left_counts)
-    print(right_counts)
-
     curve, distance_curve = lane_detection.is_curve(debug)
     speed, distance_speed = lane_detection.is_brake(debug)
 
@@ -500,7 +492,6 @@ def main_lanes(frame, lane_detection, debug, placeholder):
         dashed_time]
 
     #save_number_to_file(curve, distance_left, distance_right, distance)
-    print((time.time() - roi_start_time) * 1000)
 
     return center_offset, data, curve, speed
 
