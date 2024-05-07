@@ -1,9 +1,12 @@
+<img width="100%" src="samples/Ablaufplan.png" alt="Ablaufplan">
+
 ## Pi-Car-Turbo Project
 
 ### Latest files: camera_front -> inside-out
-### full : for rasperry with stream
+### server : for rasperry with stream
 ### mini : for rasperry without stream
 ### video : local with video
+### stream-process: 
 <br>
 - Adapter -> Modification of the old vehicle using the 3D printer <br>
 <br>
