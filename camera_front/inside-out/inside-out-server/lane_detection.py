@@ -76,7 +76,7 @@ class LaneDetection:
         #class to calculate distance of 3 points
         self.vector = Vector()
 
-        self.rows_to_search = [767, 652, 570, 480, 394, 69]
+        self.rows_to_search = [767, 676, 614, 516, 443, 320, 0]
 
         
 
@@ -120,7 +120,6 @@ class LaneDetection:
         :param frame: Input frame (RGB image)
         :return: Image containing only white pixels
         """
-
         # Define range of white color in RGB
         lower_white = np.array([180, 180, 180], dtype=np.uint8)
         upper_white = np.array([255, 255, 255], dtype=np.uint8)
@@ -167,8 +166,7 @@ class LaneDetection:
         :param: frame: current frame
         :param: plot: Plot the warped image if True
         :return: Bird's eye view of the current lane
-        """  
-                
+        """    
         # Calculate the transformation matrix
         self.transformation_matrix = cv2.getPerspectiveTransform(
         self.roi_points, self.desired_roi_points)
@@ -241,6 +239,10 @@ class LaneDetection:
         :param curve: Boolean indicating whether the current lane is a curve or straight
         :return: Tuple containing distance and information about dashed lines on the left and right sides
         """
+
+        #just for straight
+        #if curve == False
+
         distance_left = None
         distance_right = None
 
@@ -293,7 +295,7 @@ class LaneDetection:
             if printToTerminal:
                 info_right =  "Dashed line on the right"
             if curve:
-                distance_right = next((val for val in self.right_counts[1:-1] if val != 512), None)
+                distance_right = next((val for val in self.right_counts[1:-2] if val != 512), None)
                 if distance_right == None or distance_right == 0:
                     if self.right_counts[0] != 512 or self.right_counts[0] != 0:
                         distance_right = self.right_counts[0]
@@ -307,7 +309,7 @@ class LaneDetection:
             if printToTerminal:
                 info_right = "Straight line on the right"
             if curve:
-                distance_right = next((val for val in self.right_counts[1:-1] if val != 512), None)
+                distance_right = next((val for val in self.right_counts[1:-2] if val != 512), None)
             else:
                 distance_right = next((val for val in self.right_counts if val != 512), None)
             self.dashed_right = False
@@ -332,10 +334,6 @@ class LaneDetection:
         :param direction: Direction to switch to ("left" or "right")
         :return: fake offset for lane switching
         """
-        #function for switchting the lane
-
-        #get lane by dashed_right or dashed_left
-
         self.switch_to = direction if direction in ["left", "right"] else ""
 
         #switch to left             and dashed on left then car is on the right
@@ -387,8 +385,6 @@ class LaneDetection:
         :param printToTerminal: Boolean indicating whether to print information to the terminal
         :return: Tuple indicating whether it's a curve, and distances for speed and curve detection
         """
-        #[767, 652, 570, 480, 394, 69]
-
         #experimental: if one distance is negative its maybe a straight line:
         if self.negative_numbers():
 
@@ -405,6 +401,8 @@ class LaneDetection:
 
             if array is not None:
 
+                array = array[:-1]
+
                 #if some points in array are 512 (dashed line f.e.) search for pair of numbers that are not 512, otherwise just use the last
                 some_512 = any(count == 512 for count in array)
                 if some_512:
@@ -412,11 +410,11 @@ class LaneDetection:
                     position = self.find_position_of_value(array, val)
                     #if position is one of the first two values (4 or 5) it should not use them bcs the line would be straight whatever happens
                     if position == 4 or position == 5:
-                        point_to_check = (array[-1],self.rows_to_search[-1])
+                        point_to_check = (array[-1],self.rows_to_search[-2])
                     else:
                         point_to_check = (val,self.rows_to_search[position])
                 else:
-                    point_to_check = (array[-1],self.rows_to_search[-1])
+                    point_to_check = (array[-1],self.rows_to_search[-2])
 
                 point1 = (array[0],self.rows_to_search[0])
                 point2 = (array[1],self.rows_to_search[1])
@@ -474,7 +472,7 @@ def main_lanes(frame, lane_detection, debug):
     :return: Tuple containing the car's center offset and time data collected during the process
     """
      # Row indices to select
-    row_indices = [584, 510, 470, 420, 390, 350] #290
+    row_indices = [584, 510, 470, 420, 390, 350, 280] #290
 
     roi_start_time = time.time()
     # Select specific rows of pixels and set the rest to black
@@ -491,7 +489,7 @@ def main_lanes(frame, lane_detection, debug):
 
     # Find lane line pixels using the sliding window method 
     find_start_time = time.time()
-    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 676, 614, 516, 443, 320]) #69
+    left_counts, right_counts = lane_detection.find_nearest_white_pixels([767, 676, 614, 516, 443, 320, 0]) #69
     find_time = (time.time() - find_start_time) * 1000
 
     #function to detect curve

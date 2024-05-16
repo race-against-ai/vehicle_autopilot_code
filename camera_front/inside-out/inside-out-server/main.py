@@ -75,6 +75,8 @@ class LaneDetector:
 
     def process_video(self):
 
+        print("test")
+
         while True:
 
             #timer start for process time
@@ -91,7 +93,7 @@ class LaneDetector:
             #frame = calib(frame)
             calibration_time = (time.time() - calib_time) * 1000
 
-            self.center_offset, self.data, self.curve, self.speed_curve = main_lanes(frame, self.lane_detection, self.debug, self.placeholder)
+            self.center_offset, self.data, self.curve, self.speed_curve = main_lanes(frame, self.lane_detection, self.debug)
 
             #calculation for steering angle
             self.calculate_steering_angle()
@@ -128,11 +130,12 @@ class LaneDetector:
                         self.tester = False
 
                 if self.speed_curve or self.curve:
+                    driving_instance.frward_drive(0)
                     #print("--------------------------------------------------------------------------")
                     driving_instance.frward_drive(0.13) #0.4
                 else:
                     #print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                    driving_instance.frward_drive(0.13) #0.56
+                    driving_instance.frward_drive(0.135) #0.56
             else:
                 driving_instance.frward_drive(0)
 
@@ -157,7 +160,7 @@ class LaneDetector:
         :return: Steering angle in range [-1, 1]
         """
         if self.curve:
-            normalized_offset = self.center_offset / 350
+            normalized_offset = self.center_offset / 320
             #if normalized_offset > 0:
             #    normalized_offset = 0
         else:
@@ -238,7 +241,10 @@ class LaneDetector:
         Detect changes in JSON data and update class attributes accordingly.
         :return: None
         """
-        current_data = self.read_json('data.json')
+        try:
+            current_data = self.read_json('data.json')
+        except:
+            pass
         self.stream = current_data.get('stream', False)
         self.process = current_data.get('process', False)
         self.motor = current_data.get('motor', False)
