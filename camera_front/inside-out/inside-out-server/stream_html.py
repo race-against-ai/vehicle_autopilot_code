@@ -252,7 +252,7 @@ class StreamingHandler(BaseHTTPRequestHandler):
             self.send_error(404)
             self.end_headers()
 
-        print(f"Starting time: {datetime.datetime.now()}. Took {(time.time() - start_time)*1000}")
+        #print(f"Starting time: {datetime.datetime.now()}. Took {(time.time() - start_time)*1000}")
 
     def send_frame(self, frame):
         #convert frame to PIL Image

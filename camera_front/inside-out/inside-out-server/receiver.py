@@ -50,7 +50,11 @@ def recv():
 
             putQueue(decoded_image)
         except Exception as e:
+            receiver_socket.close()
             print("Error:", e)
+            break
+
+    recv()
 
 
 if __name__ == "__main__":

@@ -25,21 +25,6 @@ class Vector:
         self._y_intersection = None
         
 
-    def calculate_distance(self, point1, point2, point_to_check, debug = False):
-        self._point1 = point1
-        self._point2 = point2
-        self._point_to_check = point_to_check
-
-        self._straight_line_equation_with_two_points(debug)
-
-        self._orthogonal_line_to_line(debug)
-
-        self._intersection_point_between_lines(debug)
-
-        distance = self._distance_between_two_points()
-
-        return distance
-
     def _straight_line_equation_with_two_points(self, debug = False):
         x1, y1 = self._point1
         x2, y2 = self._point2
@@ -60,7 +45,8 @@ class Vector:
 
         self._line_intercept = b
         self._line_slope = m
-    
+
+
     def _orthogonal_line_to_line(self, debug = False):
         # Calculate the slope of the perpendicular line
         if self._line_slope != 0:  # Special case when the slope of the given line is not zero
@@ -103,4 +89,38 @@ class Vector:
         x2, y2 = self._x_intersection, self._y_intersection
 
         distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        return distance
+    
+    def _left_or_right(self):
+
+        x1 = self._point_to_check[0]
+        x2 =  self._x_intersection
+
+        print(x1, x2)
+
+        if abs(x1) > 1 and abs(x2) > 1:
+
+            if x1 < x2:
+                return "left"
+            else:
+                return "right"
+
+
+    def calculate_distance(self, point1, point2, point_to_check, curve_check = False ,debug = False):
+        self._point1 = point1
+        self._point2 = point2
+        self._point_to_check = point_to_check
+
+        self._straight_line_equation_with_two_points(debug)
+
+        self._orthogonal_line_to_line(debug)
+
+        self._intersection_point_between_lines(debug)
+
+        distance = self._distance_between_two_points()
+
+        if curve_check:
+            curve_direction = self._left_or_right()
+            return curve_direction
+
         return distance
