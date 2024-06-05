@@ -7,10 +7,10 @@ from main import LaneDetector
 from stream_html import init, putQueue
 import threading
 
-#set camera filter and rotation at start
-device_path='/dev/video0'
+# Set camera filter and rotation at start
+device_path = '/dev/video0'
 os.system(f'v4l2-ctl -d {device_path} --set-ctrl=rotate={180}')
-os.system(f'v4l2-ctl -d {device_path} --set-ctrl=color_effects=1') # Run 'v4l2-ctl -L' for explanations
+os.system(f'v4l2-ctl -d {device_path} --set-ctrl=color_effects=1')  # Run 'v4l2-ctl -L' for explanations
 
 def capture_video(shared_array, event, shape, dtype):
     # Initialize the video capture
@@ -52,21 +52,22 @@ def capture_video(shared_array, event, shape, dtype):
 
     cap.release()
 
-def process_detection(shared_array, processed_image, shape, dtype):
+def process_detection(shared_array, run_stream, shape, dtype):
     fps_counter = 0
     start_time = time.time()
     lanedetector = LaneDetector()
 
     while True:
         # Convert the shared array back to a numpy array
-
         with shared_array.get_lock():
             np_array = np.frombuffer(shared_array.get_obj(), dtype=dtype).reshape(shape)
             frame = np_array.copy()
 
         # Process the frame using the lane detector
-        lanedetector.process_video(frame)
-
+        stream : bool = lanedetector.process_video(frame)
+        
+        # Update the boolean flag
+        run_stream.value = stream
 
         fps_counter += 1
         if time.time() - start_time >= 1.0:
@@ -74,7 +75,8 @@ def process_detection(shared_array, processed_image, shape, dtype):
             fps_counter = 0
             start_time = time.time()
 
-def process_stream(shared_array, event, shape, dtype):
+
+def process_stream(shared_array, event, run_stream, shape, dtype):
     fps_counter = 0
     start_time = time.time()
 
@@ -84,24 +86,28 @@ def process_stream(shared_array, event, shape, dtype):
     init_thread.start()
 
     while True:
-        # wait for event on video process and clear it
-        event.wait()
-        event.clear()
+        if run_stream.value:
 
-        # Convert the shared array back to a numpy array
-        with shared_array.get_lock():
-            np_array = np.frombuffer(shared_array.get_obj(), dtype=dtype).reshape(shape)
-            frame = np_array.copy()
+            # wait for event on video process and clear it
+            event.wait()
+            event.clear()
 
-        # Put the numpy array into the queue
-        putQueue(frame)
-        
-        # Update FPS counter
-        fps_counter += 1
-        if time.time() - start_time >= 1.0:
-            #print(f"Stream FPS: {fps_counter}")
-            fps_counter = 0
-            start_time = time.time()
+            # Convert the shared array back to a numpy array
+            with shared_array.get_lock():
+                np_array = np.frombuffer(shared_array.get_obj(), dtype=dtype).reshape(shape)
+                frame = np_array.copy()
+
+            # Put the numpy array into the queue
+            putQueue(frame)
+            
+            # Update FPS counter
+            fps_counter += 1
+            if time.time() - start_time >= 1.0:
+                #print(f"Stream FPS: {fps_counter}")
+                fps_counter = 0
+                start_time = time.time()
+
+
 
 if __name__ == '__main__':
     # Define the frame properties
@@ -111,13 +117,15 @@ if __name__ == '__main__':
 
     # Create a shared memory array
     shared_array = multiprocessing.Array(dtype.char, dummy_frame.size)
-    processed_image = multiprocessing.Array(dtype.char, dummy_frame.size)
     event = multiprocessing.Event()
+
+    # Create a boolean flag
+    run_stream = multiprocessing.Value('b', False)
 
     # Create the processes
     process_capture = multiprocessing.Process(target=capture_video, args=(shared_array, event, shape, dtype))
-    process_lane_detection = multiprocessing.Process(target=process_detection, args=(shared_array, processed_image, shape, dtype))
-    process_stream_wlan = multiprocessing.Process(target=process_stream, args=(shared_array, processed_image, event, shape, dtype))
+    process_lane_detection = multiprocessing.Process(target=process_detection, args=(shared_array, run_stream, shape, dtype))
+    process_stream_wlan = multiprocessing.Process(target=process_stream, args=(shared_array, event, run_stream, shape, dtype))
 
     # Start the processes
     process_capture.start()

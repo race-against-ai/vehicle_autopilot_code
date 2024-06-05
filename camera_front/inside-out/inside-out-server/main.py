@@ -76,6 +76,9 @@ class LaneDetector:
         #stream_thread = threading.Thread(target=send_images)
         #stream_thread.start()
 
+        self.curvespeed = 0.0
+        self.straightlinespeed = 0.0
+
     def process_video(self, frame):
 
         self.start_time = time.time()
@@ -136,15 +139,15 @@ class LaneDetector:
                         self.brake += 1
                 else: #self.brake == 10
                     #print("--------------------------------------------------------------------------")
-                    driving_instance.frward_drive(0.34) #0.4
+                    driving_instance.frward_drive(self.curvespeed/100) #0.4
             else:
                 self.brake = 0
                 #print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                driving_instance.frward_drive(0.45) #0.56
+                driving_instance.frward_drive(self.straightlinespeed/100) #0.56
         else:
             driving_instance.frward_drive(0)
 
-        return cropped_image
+        return self.stream
 
         #putQueue(frame)
 
@@ -265,14 +268,17 @@ class LaneDetector:
         """
         try:
             current_data = self.read_json('data.json')
-        
+            
+            self.start = current_data.get('start', False)
             self.stream = current_data.get('stream', False)
-            self.process = current_data.get('process', False)
             self.motor = current_data.get('motor', False)
+            self.process = current_data.get('process', False)
             self.debug = current_data.get('debug', False)
-            self.placeholder = current_data.get('placeholder', False)
+            self.curvespeed = current_data.get('curvespeed', 0.0)
+            self.straightlinespeed = current_data.get('straightlinespeed', 0.0)
         except:
             pass
+
 
 if __name__ == "__main__":
     lane_detector = LaneDetector()
