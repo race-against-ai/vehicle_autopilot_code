@@ -15,13 +15,6 @@ from calibra import calib
 class LaneDetector:
     def __init__(self):
 
-        stream_url = 'localstream\output_video.avi'
-        #stream_url = "http://localhost:8443/canny_html.py"
-
-        # Create a VideoCapture object to access the stream
-        self.cap = cv2.VideoCapture(stream_url)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-
         self.lane_detection = None
 
         self.total_time_sum = 0
@@ -36,9 +29,7 @@ class LaneDetector:
 
         self.curve = None
 
-        ret, frame = self.cap.read()
-        self.frame = cv2.resize(frame, (1024, 768))
-
+        self.frame = np.zeros((720, 960, 3), dtype=np.uint8)
         self.lane_detection = LaneDetection(self.frame)
 
         self.start_time = None
@@ -58,7 +49,8 @@ class LaneDetector:
         self.four_frame_window = FourFrameWindow()
 
         # Start the camera
-        stream_url = "http://192.168.30.106:8443/canny_html.py"
+        stream_url = "http://192.168.30.123:8443/canny_html.py"
+        #stream_url = 'localstream\schieben.avi'
         camera = cv2.VideoCapture(stream_url)
 
         # Start the cleaning thread
@@ -76,9 +68,12 @@ class LaneDetector:
             if self.cam_cleaner.last_frame is not None:
                 self.frame = self.cam_cleaner.last_frame
 
-            self.center_offset, self.data, self.curve, self.speed_curve, self.cropped_image, data_car = main_lanes(self.frame, self.lane_detection, self.debug, self.placeholder)
+            print(f'test {self.frame.shape}')
+
+            self.center_offset, self.data, self.curve, self.speed_curve, self.cropped_image, data_car = main_lanes(self.frame, self.lane_detection, self.debug)
 
             #calculation for steering angle
+
             self.calculate_steering_angle()
 
             #process time
@@ -112,8 +107,6 @@ class LaneDetector:
 
         self.angle = np.clip(normalized_offset, -1 + self.steering_offset, 1 - self.steering_offset)
 
-        self.angle = self.angle - self.steering_offset
-
     def calculate_process_time(self):
         """
         Calculate the processing time and FPS (frames per second) statistics.
@@ -141,8 +134,8 @@ class LaneDetector:
         :return: None
         """
         steering_wheel = self.draw_steering_wheel()
-        orig_frame = self.frame
-        detected_lanes = self.cropped_image
+        orig_frame = cv2.resize(self.frame, (1024, 768))
+        detected_lanes = cv2.resize(self.cropped_image, (1024, 768))
 
         frames = {
         "original": orig_frame,
